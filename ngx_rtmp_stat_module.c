@@ -329,9 +329,7 @@ ngx_rtmp_stat_client(ngx_http_request_t *r, ngx_chain_t ***lll,
     ngx_rtmp_session_t *s)
 {
     u_char  buf[NGX_INT_T_LEN];
-    struct sockaddr_in *tmp;
-    struct sockaddr_in  sa;
-    socklen_t len = sizeof(struct sockaddr);
+    struct sockaddr_in *sa;
 
 #ifdef NGX_RTMP_POOL_DEBUG
     ngx_rtmp_stat_dump_pool(r, lll, s->connection->pool);
@@ -349,13 +347,9 @@ ngx_rtmp_stat_client(ngx_http_request_t *r, ngx_chain_t ***lll,
     ** Displays socket port number
     */
     NGX_RTMP_STAT_L("<port>");
-    if (getsockname(s->connection->fd, (struct sockaddr *) &sa, &len) != -1) {
-        NGX_RTMP_STAT(buf, ngx_snprintf(buf, sizeof(buf), "%ui",
-                                        (ngx_uint_t) ntohs(sa.sin_port)) - buf);
-    } else {
-        // Something not going well?
-        NGX_RTMP_STAT(buf, ngx_snprintf(buf, sizeof(buf), "%ui", 0) - buf);
-    }
+    sa = (struct sockaddr_in *) s->connection->sockaddr;
+    NGX_RTMP_STAT(buf, ngx_snprintf(buf, sizeof(buf), "%ui",
+                  (ngx_uint_t) ntohs(sa->sin_port)) - buf);
     NGX_RTMP_STAT_L("</port>");
 
 
