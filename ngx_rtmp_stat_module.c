@@ -332,7 +332,7 @@ ngx_rtmp_stat_client(ngx_http_request_t *r, ngx_chain_t ***lll,
     struct sockaddr_in *tmp;
     struct sockaddr_in  sa;
     socklen_t len = sizeof(struct sockaddr);
-    
+
 #ifdef NGX_RTMP_POOL_DEBUG
     ngx_rtmp_stat_dump_pool(r, lll, s->connection->pool);
 #endif
@@ -349,17 +349,13 @@ ngx_rtmp_stat_client(ngx_http_request_t *r, ngx_chain_t ***lll,
     ** Displays socket port number
     */
     NGX_RTMP_STAT_L("<port>");
-    if (s->connection->listening)
-      {
-	tmp = (struct sockaddr_in *) s->connection->listening->sockaddr;
-        NGX_RTMP_STAT(buf, ngx_snprintf(buf, sizeof(buf), "%ui",
-                                        (ngx_uint_t) ntohs(tmp->sin_port)) - buf);
-      }
-    else if (getsockname(s->connection->fd, (struct sockaddr *) &sa, &len) != -1)
-      {
+    if (getsockname(s->connection->fd, (struct sockaddr *) &sa, &len) != -1) {
         NGX_RTMP_STAT(buf, ngx_snprintf(buf, sizeof(buf), "%ui",
                                         (ngx_uint_t) ntohs(sa.sin_port)) - buf);
-      }
+    } else {
+        // Something not going well?
+        NGX_RTMP_STAT(buf, ngx_snprintf(buf, sizeof(buf), "%ui", 0) - buf);
+    }
     NGX_RTMP_STAT_L("</port>");
 
 
@@ -385,14 +381,14 @@ ngx_rtmp_stat_client(ngx_http_request_t *r, ngx_chain_t ***lll,
         NGX_RTMP_STAT_ES(&s->swf_url);
         NGX_RTMP_STAT_L("</swfurl>");
     }
-    
+
     NGX_RTMP_STAT_L("<bytes_in>");
     NGX_RTMP_STAT(buf, ngx_snprintf(buf, sizeof(buf), "%ui", (ngx_uint_t) s->in_bytes) - buf);
     NGX_RTMP_STAT_L("</bytes_in>");
 
     NGX_RTMP_STAT_L("<bytes_out>");
     NGX_RTMP_STAT(buf, ngx_snprintf(buf, sizeof(buf), "%ui", (ngx_uint_t) s->out_bytes) - buf);
-    NGX_RTMP_STAT_L("</bytes_out>");    
+    NGX_RTMP_STAT_L("</bytes_out>");
 }
 
 
