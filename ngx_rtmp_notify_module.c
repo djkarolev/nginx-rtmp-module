@@ -1077,9 +1077,6 @@ ngx_rtmp_notify_connect_handle(ngx_rtmp_session_t *s,
             "notify: connect send(e) close method = '%ui'", send == NGX_OK);
 
         return send;
-//        return next_disconnect(s);
-//        Don't close connection here! Client must catch message and do it by itself.
-//        goto next;
     }
 
 next:
@@ -1183,17 +1180,13 @@ ngx_rtmp_notify_publish_handle(ngx_rtmp_session_t *s,
         ngx_pfree(s->connection->pool, local_name.data);
 
         ngx_rtmp_notify_clear_flag(s, NGX_RTMP_NOTIFY_PUBLISHING);
-//        return send;
 
         // Something by rtmpdump lib
-        send = ngx_rtmp_send_close_method(s);
+        send = ngx_rtmp_send_close_method(s, "close");
         ngx_log_error(NGX_LOG_INFO, s->connection->log, 0,
             "notify: publish send(e) close method = '%ui'", send == NGX_OK);
 
         return send;
-//        return next_disconnect(s);
-//        Don't close connection here! Client must catch message and do it by itself.
-//        goto next;
 
     } else if (nacf->relay_redirect) {
         // Relay local streams, change name
