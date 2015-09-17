@@ -1021,7 +1021,7 @@ ngx_rtmp_notify_connect_handle(ngx_rtmp_session_t *s,
         ngx_log_error(NGX_LOG_INFO, s->connection->log, 0,
             "notify: connection denyed by callback return code 4xx");
 
-        ngx_rtmp_send_status("NetConnection.Connect.Rejected", "error",
+        ngx_rtmp_send_status(s, "NetConnection.Connect.Rejected", "error",
                              "Cennection denyed by notify event handler and callback return code");
 
         // Something by rtmpdump lib
@@ -1154,7 +1154,7 @@ ngx_rtmp_notify_publish_handle(ngx_rtmp_session_t *s,
         ngx_log_error(NGX_LOG_INFO, s->connection->log, 0,
             "notify: publishing denyed by callback return code 4xx");
 
-        ngx_rtmp_send_status("NetConnection.Connect.Rejected", "error",
+        ngx_rtmp_send_status(s, "NetConnection.Connect.Rejected", "error",
                              "Publishing denyed by notify event handler and callback return code");
 
         ngx_rtmp_notify_clear_flag(s, NGX_RTMP_NOTIFY_PUBLISHING);
@@ -1275,7 +1275,7 @@ ngx_rtmp_notify_play_handle(ngx_rtmp_session_t *s,
         void *arg, ngx_chain_t *in)
 {
     ngx_rtmp_play_t            *v = arg;
-    ngx_int_t                   rc;
+    ngx_int_t                   rc, send;
     ngx_str_t                   local_name;
     ngx_rtmp_relay_target_t     target;
     ngx_url_t                  *u;
@@ -1300,7 +1300,7 @@ ngx_rtmp_notify_play_handle(ngx_rtmp_session_t *s,
         ngx_log_error(NGX_LOG_INFO, s->connection->log, 0,
             "notify: playing denyed by callback return code 4xx");
 
-        ngx_rtmp_send_status("NetConnection.Connect.Rejected", "error",
+        ngx_rtmp_send_status(s, "NetConnection.Connect.Rejected", "error",
                              "Playing denyed by notify event handler and callback return code");
 
         ngx_rtmp_notify_clear_flag(s, NGX_RTMP_NOTIFY_PLAYING);
