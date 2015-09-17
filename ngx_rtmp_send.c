@@ -779,7 +779,8 @@ ngx_rtmp_create_fcpublish(ngx_rtmp_session_t *s, char *desc)
                    desc);
 
     out_inf[2].data = desc;
-    trans = 3.0;                // magick from ffmpeg
+//    trans = 3.0;                // magick from ffmpeg
+    trans = 0;
 
     memset(&h, 0, sizeof(h));
 
@@ -846,7 +847,8 @@ ngx_rtmp_create_fcunpublish(ngx_rtmp_session_t *s, char *desc)
                    desc);
 
     out_inf[2].data = desc;
-    trans = 5.0;                // magick from ffmpeg
+//    trans = 5.0;                // magick from ffmpeg
+    trans = 0;
 
     memset(&h, 0, sizeof(h));
 
