@@ -1198,15 +1198,31 @@ static ngx_int_t
 ngx_rtmp_live_on_fcpublish(ngx_rtmp_session_t *s, ngx_rtmp_header_t *h,
                            ngx_chain_t *in)
 {
-    static ngx_rtmp_amf_elt_t   out_elts[] = {
 
-            { NGX_RTMP_AMF_STRING,
-                    ngx_null_string,
-                    "onFCPublish", 0 }
-    };
+    ngx_rtmp_live_app_conf_t       *lacf;
+    ngx_rtmp_live_ctx_t            *ctx;
 
-    return ngx_rtmp_live_data(s, h, in, out_elts,
-                              sizeof(out_elts) / sizeof(out_elts[0]));
+    lacf = ngx_rtmp_get_module_app_conf(s, ngx_rtmp_live_module);
+    if (lacf == NULL) {
+        return NGX_ERROR;
+    }
+
+    if (!lacf->live || in == NULL  || in->buf == NULL) {
+        return NGX_OK;
+    }
+
+    ctx = ngx_rtmp_get_module_ctx(s, ngx_rtmp_live_module);
+    if (ctx == NULL || ctx->stream == NULL) {
+        return NGX_OK;
+    }
+
+    if (ctx->publishing == 0) {
+        ngx_log_error(NGX_LOG_INFO, s->connection->log, 0,
+                       "live: FCPublish from non-publisher: name=%s, ip=%s", ctx->stream->name, s->addr_text);
+        return NGX_OK;
+    }
+
+    return ngx_rtmp_send_fcpublish(s, ctx->stream->name);
 }
 
 
