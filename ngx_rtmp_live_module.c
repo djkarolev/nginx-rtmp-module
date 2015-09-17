@@ -1204,25 +1204,78 @@ ngx_rtmp_live_on_fcpublish(ngx_rtmp_session_t *s, ngx_rtmp_header_t *h,
 
     lacf = ngx_rtmp_get_module_app_conf(s, ngx_rtmp_live_module);
     if (lacf == NULL) {
+        ngx_log_error(NGX_LOG_DEBUG, s->connection->log, 0,
+                       "live: FCPublish - no live config!");
         return NGX_ERROR;
     }
 
     if (!lacf->live || in == NULL  || in->buf == NULL) {
+        ngx_log_error(NGX_LOG_DEBUG, s->connection->log, 0,
+                       "live: FCPublish - no live or no buffer!");
         return NGX_OK;
     }
 
     ctx = ngx_rtmp_get_module_ctx(s, ngx_rtmp_live_module);
     if (ctx == NULL || ctx->stream == NULL) {
+        ngx_log_error(NGX_LOG_DEBUG, s->connection->log, 0,
+                       "live: FCPublish - no context or no stream!");
         return NGX_OK;
     }
 
-    if (ctx->publishing == 0) {
+/*    if (ctx->publishing == 0) {
         ngx_log_error(NGX_LOG_INFO, s->connection->log, 0,
                        "live: FCPublish from non-publisher: name=%s, ip=%s", ctx->stream->name, s->addr_text);
         return NGX_OK;
     }
+*/
 
-    return ngx_rtmp_send_fcpublish(s, ctx->stream->name);
+    static double                   trans;
+
+    static ngx_rtmp_amf_elt_t       out_inf[] = {
+
+        { NGX_RTMP_AMF_STRING,
+          ngx_string("level"),
+          "status", 0 },
+
+        { NGX_RTMP_AMF_STRING,
+          ngx_string("code"),
+          "NetStream.Publish.Start", 0 },
+
+        { NGX_RTMP_AMF_STRING,
+          ngx_string("description"),
+          NULL, 0 },
+    };
+
+    static ngx_rtmp_amf_elt_t       out_elts[] = {
+
+        { NGX_RTMP_AMF_STRING,
+          ngx_null_string,
+          "onFCPublish", 0 },
+
+        { NGX_RTMP_AMF_NUMBER,
+          ngx_null_string,
+          &trans, 0 },
+
+        { NGX_RTMP_AMF_NULL,
+          ngx_null_string,
+          NULL, 0 },
+
+        { NGX_RTMP_AMF_OBJECT,
+          ngx_null_string,
+          out_inf,
+          sizeof(out_inf) },
+    };
+
+    ngx_log_error(NGX_LOG_DEBUG, s->connection->log, 0,
+                   "create: fcpublish stream='%s'", ctx->stream->name);
+
+    out_inf[2].data = ctx->stream->name;
+    trans = 3.0;                // magick from ffmpeg
+
+//    return ngx_rtmp_send_fcpublish(s, ctx->stream->name);
+
+    return ngx_rtmp_live_data(s, h, in, out_elts,
+                              sizeof(out_elts) / sizeof(out_elts[0]));
 }
 
 
@@ -1236,26 +1289,79 @@ ngx_rtmp_live_on_fcunpublish(ngx_rtmp_session_t *s, ngx_rtmp_header_t *h,
 
     lacf = ngx_rtmp_get_module_app_conf(s, ngx_rtmp_live_module);
     if (lacf == NULL) {
+        ngx_log_error(NGX_LOG_DEBUG, s->connection->log, 0,
+                       "live: FCUnpublish - no live config!");
         return NGX_ERROR;
     }
 
     if (!lacf->live || in == NULL  || in->buf == NULL) {
+        ngx_log_error(NGX_LOG_DEBUG, s->connection->log, 0,
+                       "live: FCUnpublish - no live or no buffer!");
         return NGX_OK;
     }
 
     ctx = ngx_rtmp_get_module_ctx(s, ngx_rtmp_live_module);
     if (ctx == NULL || ctx->stream == NULL) {
+        ngx_log_error(NGX_LOG_DEBUG, s->connection->log, 0,
+                       "live: FCUnpublish - no context or no stream!");
         return NGX_OK;
     }
 
     // Probably wrong. Need testing, debug-log.
-    if (ctx->publishing == 0) {
+/*    if (ctx->publishing == 0) {
         ngx_log_error(NGX_LOG_INFO, s->connection->log, 0,
                        "live: FCUnpublish from non-publisher: name=%s, ip=%s", ctx->stream->name, s->addr_text);
         return NGX_OK;
     }
+*/
 
-    return ngx_rtmp_send_fcunpublish(s, ctx->stream->name);
+    static double                   trans;
+
+    static ngx_rtmp_amf_elt_t       out_inf[] = {
+
+        { NGX_RTMP_AMF_STRING,
+          ngx_string("level"),
+          "status", 0 },
+
+        { NGX_RTMP_AMF_STRING,
+          ngx_string("code"),
+          "NetStream.Unpublish.Success", 0 },
+
+        { NGX_RTMP_AMF_STRING,
+          ngx_string("description"),
+          NULL, 0 },
+    };
+
+    static ngx_rtmp_amf_elt_t       out_elts[] = {
+
+        { NGX_RTMP_AMF_STRING,
+          ngx_null_string,
+          "onFCUnpublish", 0 },
+
+        { NGX_RTMP_AMF_NUMBER,
+          ngx_null_string,
+          &trans, 0 },
+
+        { NGX_RTMP_AMF_NULL,
+          ngx_null_string,
+          NULL, 0 },
+
+        { NGX_RTMP_AMF_OBJECT,
+          ngx_null_string,
+          out_inf,
+          sizeof(out_inf) },
+    };
+
+    ngx_log_error(NGX_LOG_DEBUG, s->connection->log, 0,
+                   "create: fcunpublish stream='%s'", ctx->stream->name);
+
+    out_inf[2].data = ctx->stream->name;
+    trans = 5.0;                // magick from ffmpeg
+
+//    return ngx_rtmp_send_fcunpublish(s, ctx->stream->name);
+
+    return ngx_rtmp_live_data(s, h, in, out_elts,
+                              sizeof(out_elts) / sizeof(out_elts[0]));
 }
 
 
