@@ -860,6 +860,8 @@ ngx_rtmp_notify_parse_http_retcode(ngx_rtmp_session_t *s,
                         return NGX_OK;
                     case (u_char) '3':
                         return NGX_AGAIN;
+                    case (u_char) '4':
+                        return NGX_DECLINED;
                     default:
                         return NGX_ERROR;
                 }
@@ -1005,7 +1007,28 @@ ngx_rtmp_notify_connect_handle(ngx_rtmp_session_t *s,
     static ngx_str_t    location = ngx_string("location");
 
     rc = ngx_rtmp_notify_parse_http_retcode(s, in);
+
+    /* HTTP 5xx or unknown/unsupprted */
+
     if (rc == NGX_ERROR) {
+        return NGX_ERROR;
+    }
+
+    /* HTTP 4xx */
+
+    if (rc == NGX_DECLINED) {
+
+        ngx_log_error(NGX_LOG_INFO, s->connection->log, 0,
+            "notify: connection denyed by callback return code 4xx");
+
+        ngx_rtmp_send_status(s, "NetConnection.Connect.Rejected", "error",
+                             "Cennection denyed by notify event handler and callback return code");
+
+        // Something by rtmpdump lib
+        send = ngx_rtmp_send_close_method(s, "close");
+        ngx_log_error(NGX_LOG_INFO, s->connection->log, 0,
+            "notify: connect send(e) close method = '%ui'", send == NGX_OK);
+
         return NGX_ERROR;
     }
 
@@ -1116,8 +1139,31 @@ ngx_rtmp_notify_publish_handle(ngx_rtmp_session_t *s,
     static ngx_str_t    location = ngx_string("location");
 
     rc = ngx_rtmp_notify_parse_http_retcode(s, in);
+
+    /* HTTP 5xx or unknown/unsupprted */
+
     if (rc == NGX_ERROR) {
         ngx_rtmp_notify_clear_flag(s, NGX_RTMP_NOTIFY_PUBLISHING);
+        return NGX_ERROR;
+    }
+
+    /* HTTP 4xx */
+
+    if (rc == NGX_DECLINED) {
+
+        ngx_log_error(NGX_LOG_INFO, s->connection->log, 0,
+            "notify: publishing denyed by callback return code 4xx");
+
+        ngx_rtmp_send_status(s, "NetConnection.Connect.Rejected", "error",
+                             "Publishing denyed by notify event handler and callback return code");
+
+        ngx_rtmp_notify_clear_flag(s, NGX_RTMP_NOTIFY_PUBLISHING);
+
+        // Something by rtmpdump lib
+        send = ngx_rtmp_send_close_method(s, "close");
+        ngx_log_error(NGX_LOG_INFO, s->connection->log, 0,
+            "notify: connect send(e) close method = '%ui'", send == NGX_OK);
+
         return NGX_ERROR;
     }
 
@@ -1229,7 +1275,7 @@ ngx_rtmp_notify_play_handle(ngx_rtmp_session_t *s,
         void *arg, ngx_chain_t *in)
 {
     ngx_rtmp_play_t            *v = arg;
-    ngx_int_t                   rc;
+    ngx_int_t                   rc, send;
     ngx_str_t                   local_name;
     ngx_rtmp_relay_target_t     target;
     ngx_url_t                  *u;
@@ -1239,8 +1285,31 @@ ngx_rtmp_notify_play_handle(ngx_rtmp_session_t *s,
     static ngx_str_t            location = ngx_string("location");
 
     rc = ngx_rtmp_notify_parse_http_retcode(s, in);
+
+    /* HTTP 5xx or unknown/unsupprted */
+
     if (rc == NGX_ERROR) {
         ngx_rtmp_notify_clear_flag(s, NGX_RTMP_NOTIFY_PLAYING);
+        return NGX_ERROR;
+    }
+
+    /* HTTP 4xx */
+
+    if (rc == NGX_DECLINED) {
+
+        ngx_log_error(NGX_LOG_INFO, s->connection->log, 0,
+            "notify: playing denyed by callback return code 4xx");
+
+        ngx_rtmp_send_status(s, "NetConnection.Connect.Rejected", "error",
+                             "Playing denyed by notify event handler and callback return code");
+
+        ngx_rtmp_notify_clear_flag(s, NGX_RTMP_NOTIFY_PLAYING);
+
+        // Something by rtmpdump lib
+        send = ngx_rtmp_send_close_method(s, "close");
+        ngx_log_error(NGX_LOG_INFO, s->connection->log, 0,
+            "notify: connect send(e) close method = '%ui'", send == NGX_OK);
+
         return NGX_ERROR;
     }
 
