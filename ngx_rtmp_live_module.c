@@ -1227,6 +1227,39 @@ ngx_rtmp_live_on_fcpublish(ngx_rtmp_session_t *s, ngx_rtmp_header_t *h,
 
 
 static ngx_int_t
+ngx_rtmp_live_on_fcunpublish(ngx_rtmp_session_t *s, ngx_rtmp_header_t *h,
+                           ngx_chain_t *in)
+{
+
+    ngx_rtmp_live_app_conf_t       *lacf;
+    ngx_rtmp_live_ctx_t            *ctx;
+
+    lacf = ngx_rtmp_get_module_app_conf(s, ngx_rtmp_live_module);
+    if (lacf == NULL) {
+        return NGX_ERROR;
+    }
+
+    if (!lacf->live || in == NULL  || in->buf == NULL) {
+        return NGX_OK;
+    }
+
+    ctx = ngx_rtmp_get_module_ctx(s, ngx_rtmp_live_module);
+    if (ctx == NULL || ctx->stream == NULL) {
+        return NGX_OK;
+    }
+
+    // Probably wrong. Need testing, debug-log.
+    if (ctx->publishing == 0) {
+        ngx_log_error(NGX_LOG_INFO, s->connection->log, 0,
+                       "live: FCUnpublish from non-publisher: name=%s, ip=%s", ctx->stream->name, s->addr_text);
+        return NGX_OK;
+    }
+
+    return ngx_rtmp_send_fcunpublish(s, ctx->stream->name);
+}
+
+
+static ngx_int_t
 ngx_rtmp_live_publish(ngx_rtmp_session_t *s, ngx_rtmp_publish_t *v)
 {
     ngx_rtmp_live_app_conf_t       *lacf;
@@ -1352,8 +1385,12 @@ ngx_rtmp_live_postconfiguration(ngx_conf_t *cf)
     ch->handler = ngx_rtmp_live_on_fi;
 
     ch = ngx_array_push(&cmcf->amf);
-    ngx_str_set(&ch->name, "onFCPublish");
+    ngx_str_set(&ch->name, "FCPublish");
     ch->handler = ngx_rtmp_live_on_fcpublish;
+
+    ch = ngx_array_push(&cmcf->amf);
+    ngx_str_set(&ch->name, "FCUnpublish");
+    ch->handler = ngx_rtmp_live_on_fcunpublish;
 
     return NGX_OK;
 }
