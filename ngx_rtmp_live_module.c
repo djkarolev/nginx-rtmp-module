@@ -1270,7 +1270,7 @@ ngx_rtmp_live_on_fcpublish(ngx_rtmp_session_t *s, ngx_rtmp_header_t *h,
                    "create: fcpublish stream='%s'", ctx->stream->name);
 
     out_inf[2].data = ctx->stream->name;
-    trans = 3.0;                // magick from ffmpeg
+    trans = 0;
 
 //    return ngx_rtmp_send_fcpublish(s, ctx->stream->name);
 
@@ -1356,7 +1356,7 @@ ngx_rtmp_live_on_fcunpublish(ngx_rtmp_session_t *s, ngx_rtmp_header_t *h,
                    "create: fcunpublish stream='%s'", ctx->stream->name);
 
     out_inf[2].data = ctx->stream->name;
-    trans = 5.0;                // magick from ffmpeg
+    trans = 0;
 
 //    return ngx_rtmp_send_fcunpublish(s, ctx->stream->name);
 
