@@ -586,6 +586,8 @@ ngx_int_t ngx_rtmp_send_sample_access(ngx_rtmp_session_t *s);
 ngx_int_t ngx_rtmp_send_redirect_status(ngx_rtmp_session_t *s,
         char *callMethod, char *desc, ngx_str_t to_url);
 ngx_int_t ngx_rtmp_send_close_method(ngx_rtmp_session_t *s, char *methodName);
+ngx_int_t ngx_rtmp_send_fcpublish(ngx_rtmp_session_t *s, char *desc);
+ngx_int_t ngx_rtmp_send_fcunpublish(ngx_rtmp_session_t *s, char *desc);
 
 
 /* Frame types */

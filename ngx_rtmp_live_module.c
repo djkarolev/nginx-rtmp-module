@@ -1194,6 +1194,123 @@ ngx_rtmp_live_on_fi(ngx_rtmp_session_t *s, ngx_rtmp_header_t *h,
                               sizeof(out_elts) / sizeof(out_elts[0]));
 }
 
+static ngx_int_t
+ngx_rtmp_live_on_fcpublish(ngx_rtmp_session_t *s, ngx_rtmp_header_t *h,
+                           ngx_chain_t *in)
+{
+
+    ngx_rtmp_live_app_conf_t       *lacf;
+    ngx_rtmp_live_ctx_t            *ctx;
+
+    static struct {
+        double                  trans;
+        u_char                  action[128];
+        u_char                  stream[1024];
+    } v;
+
+    static ngx_rtmp_amf_elt_t   in_elts[] = {
+
+//          Already readed
+/*        { NGX_RTMP_AMF_STRING,
+          ngx_null_string,
+          &v.action, sizeof(v.action) },
+*/
+        { NGX_RTMP_AMF_NUMBER,
+          ngx_null_string,
+          &v.trans, 0 },
+
+        { NGX_RTMP_AMF_NULL,
+          ngx_null_string,
+          NULL, 0 },
+
+        { NGX_RTMP_AMF_STRING,
+          ngx_null_string,
+          &v.stream, sizeof(v.stream) },
+    };
+
+    lacf = ngx_rtmp_get_module_app_conf(s, ngx_rtmp_live_module);
+    if (lacf == NULL) {
+        ngx_log_error(NGX_LOG_DEBUG, s->connection->log, 0,
+                       "live: FCPublish - no live config!");
+        return NGX_ERROR;
+    }
+
+    if (!lacf->live || in == NULL  || in->buf == NULL) {
+        ngx_log_error(NGX_LOG_DEBUG, s->connection->log, 0,
+                       "live: FCPublish - no live or no buffer!");
+        return NGX_OK;
+    }
+
+    ngx_memzero(&v, sizeof(v));
+    ngx_rtmp_receive_amf(s, in, in_elts,
+            sizeof(in_elts) / sizeof(in_elts[0]));
+
+    ngx_log_error(NGX_LOG_DEBUG, s->connection->log, 0,
+            "live: onFCPublish: stream='%s'",
+            v.stream);
+
+    return ngx_rtmp_send_fcpublish(s, v.stream);
+}
+
+
+static ngx_int_t
+ngx_rtmp_live_on_fcunpublish(ngx_rtmp_session_t *s, ngx_rtmp_header_t *h,
+                           ngx_chain_t *in)
+{
+
+    ngx_rtmp_live_app_conf_t       *lacf;
+    ngx_rtmp_live_ctx_t            *ctx;
+
+    static struct {
+        double                  trans;
+        u_char                  action[128];
+        u_char                  stream[1024];
+    } v;
+
+    static ngx_rtmp_amf_elt_t   in_elts[] = {
+
+//          Already readed
+/*        { NGX_RTMP_AMF_STRING,
+          ngx_null_string,
+          &v.action, sizeof(v.action) },
+*/
+        { NGX_RTMP_AMF_NUMBER,
+          ngx_null_string,
+          &v.trans, 0 },
+
+        { NGX_RTMP_AMF_NULL,
+          ngx_null_string,
+          NULL, 0 },
+
+        { NGX_RTMP_AMF_STRING,
+          ngx_null_string,
+          &v.stream, sizeof(v.stream) },
+    };
+
+    lacf = ngx_rtmp_get_module_app_conf(s, ngx_rtmp_live_module);
+    if (lacf == NULL) {
+        ngx_log_error(NGX_LOG_DEBUG, s->connection->log, 0,
+                       "live: FCUnpublish - no live config!");
+        return NGX_ERROR;
+    }
+
+    if (!lacf->live || in == NULL  || in->buf == NULL) {
+        ngx_log_error(NGX_LOG_DEBUG, s->connection->log, 0,
+                       "live: FCUnpublish - no live or no buffer!");
+        return NGX_OK;
+    }
+
+    ngx_memzero(&v, sizeof(v));
+    ngx_rtmp_receive_amf(s, in, in_elts,
+            sizeof(in_elts) / sizeof(in_elts[0]));
+
+    ngx_log_error(NGX_LOG_DEBUG, s->connection->log, 0,
+            "live: onFCUnpublish: stream='%s'",
+            v.stream);
+
+    return ngx_rtmp_send_fcunpublish(s, v.stream);
+}
+
 
 static ngx_int_t
 ngx_rtmp_live_publish(ngx_rtmp_session_t *s, ngx_rtmp_publish_t *v)
@@ -1319,6 +1436,14 @@ ngx_rtmp_live_postconfiguration(ngx_conf_t *cf)
     ch = ngx_array_push(&cmcf->amf);
     ngx_str_set(&ch->name, "onFi");
     ch->handler = ngx_rtmp_live_on_fi;
+
+    ch = ngx_array_push(&cmcf->amf);
+    ngx_str_set(&ch->name, "FCPublish");
+    ch->handler = ngx_rtmp_live_on_fcpublish;
+
+    ch = ngx_array_push(&cmcf->amf);
+    ngx_str_set(&ch->name, "FCUnpublish");
+    ch->handler = ngx_rtmp_live_on_fcunpublish;
 
     return NGX_OK;
 }
