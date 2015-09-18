@@ -774,9 +774,8 @@ ngx_rtmp_create_fcpublish(ngx_rtmp_session_t *s, char *desc)
           sizeof(out_inf) },
     };
 
-    ngx_log_error(NGX_LOG_DEBUG_RTMP, s->connection->log, 0,
-                   "create: fcpublish desc='%s'",
-                   desc);
+    ngx_log_error(NGX_LOG_DEBUG, s->connection->log, 0,
+                   "create: fcpublish - set structure data");
 
     out_inf[2].data = desc;
 //    trans = 3.0;                // magick from ffmpeg
@@ -842,9 +841,8 @@ ngx_rtmp_create_fcunpublish(ngx_rtmp_session_t *s, char *desc)
           sizeof(out_inf) },
     };
 
-    ngx_log_error(NGX_LOG_DEBUG_RTMP, s->connection->log, 0,
-                   "create: fcunpublish desc='%s'",
-                   desc);
+    ngx_log_error(NGX_LOG_DEBUG, s->connection->log, 0,
+                   "create: fcunpublish - set structure data");
 
     out_inf[2].data = desc;
 //    trans = 5.0;                // magick from ffmpeg
