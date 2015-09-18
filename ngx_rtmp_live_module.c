@@ -1183,15 +1183,22 @@ static ngx_int_t
 ngx_rtmp_live_on_fi(ngx_rtmp_session_t *s, ngx_rtmp_header_t *h,
                            ngx_chain_t *in)
 {
-    static ngx_rtmp_amf_elt_t   out_elts[] = {
+    ngx_rtmp_live_app_conf_t       *lacf;
 
-            { NGX_RTMP_AMF_STRING,
-                    ngx_null_string,
-                    "onFi", 0 }
-    };
+    lacf = ngx_rtmp_get_module_app_conf(s, ngx_rtmp_live_module);
+    if (lacf == NULL) {
+        ngx_log_error(NGX_LOG_DEBUG, s->connection->log, 0,
+                       "live: Fi - no live config!");
+        return NGX_ERROR;
+    }
 
-    return ngx_rtmp_live_data(s, h, in, out_elts,
-                              sizeof(out_elts) / sizeof(out_elts[0]));
+    if (!lacf->live || in == NULL  || in->buf == NULL) {
+        ngx_log_error(NGX_LOG_DEBUG, s->connection->log, 0,
+                       "live: Fi - no live or no buffer!");
+        return NGX_OK;
+    }
+
+    return ngx_rtmp_send_fi(s);
 }
 
 static ngx_int_t
@@ -1200,7 +1207,6 @@ ngx_rtmp_live_on_fcpublish(ngx_rtmp_session_t *s, ngx_rtmp_header_t *h,
 {
 
     ngx_rtmp_live_app_conf_t       *lacf;
-    ngx_rtmp_live_ctx_t            *ctx;
 
     static struct {
         double                  trans;
@@ -1259,7 +1265,6 @@ ngx_rtmp_live_on_fcunpublish(ngx_rtmp_session_t *s, ngx_rtmp_header_t *h,
 {
 
     ngx_rtmp_live_app_conf_t       *lacf;
-    ngx_rtmp_live_ctx_t            *ctx;
 
     static struct {
         double                  trans;
@@ -1434,7 +1439,7 @@ ngx_rtmp_live_postconfiguration(ngx_conf_t *cf)
     ch->handler = ngx_rtmp_live_on_cue_point;
 
     ch = ngx_array_push(&cmcf->amf);
-    ngx_str_set(&ch->name, "onFi");
+    ngx_str_set(&ch->name, "Fi");
     ch->handler = ngx_rtmp_live_on_fi;
 
     ch = ngx_array_push(&cmcf->amf);
