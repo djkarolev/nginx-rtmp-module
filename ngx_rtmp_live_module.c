@@ -1227,13 +1227,6 @@ ngx_rtmp_live_on_fcpublish(ngx_rtmp_session_t *s, ngx_rtmp_header_t *h,
           &v.stream, 0 },
     };
 
-    static ngx_rtmp_amf_elt_t   in_elts_meta[] = {
-
-        { NGX_RTMP_AMF_OBJECT,
-          ngx_null_string,
-          in_inf, sizeof(in_inf) },
-    };
-
     lacf = ngx_rtmp_get_module_app_conf(s, ngx_rtmp_live_module);
     if (lacf == NULL) {
         ngx_log_error(NGX_LOG_DEBUG, s->connection->log, 0,
@@ -1255,13 +1248,8 @@ ngx_rtmp_live_on_fcpublish(ngx_rtmp_session_t *s, ngx_rtmp_header_t *h,
     }
 
     ngx_memzero(&v, sizeof(v));
-    if (h->type == NGX_RTMP_MSG_AMF_META) {
-        ngx_rtmp_receive_amf(s, in, in_elts_meta,
-                sizeof(in_elts_meta) / sizeof(in_elts_meta[0]));
-    } else {
-        ngx_rtmp_receive_amf(s, in, in_elts,
-                sizeof(in_elts) / sizeof(in_elts[0]));
-    }
+    ngx_rtmp_receive_amf(s, in, in_elts,
+            sizeof(in_elts) / sizeof(in_elts[0]));
 
     ngx_log_error(NGX_LOG_DEBUG, s->connection->log, 0,
             "live: onFCPublish: action='%s' stream='%s'",
@@ -1348,13 +1336,6 @@ ngx_rtmp_live_on_fcunpublish(ngx_rtmp_session_t *s, ngx_rtmp_header_t *h,
           &v.stream, 0 },
     };
 
-    static ngx_rtmp_amf_elt_t   in_elts_meta[] = {
-
-        { NGX_RTMP_AMF_OBJECT,
-          ngx_null_string,
-          in_inf, sizeof(in_inf) },
-    };
-
     lacf = ngx_rtmp_get_module_app_conf(s, ngx_rtmp_live_module);
     if (lacf == NULL) {
         ngx_log_error(NGX_LOG_DEBUG, s->connection->log, 0,
@@ -1376,13 +1357,8 @@ ngx_rtmp_live_on_fcunpublish(ngx_rtmp_session_t *s, ngx_rtmp_header_t *h,
     }
 
     ngx_memzero(&v, sizeof(v));
-    if (h->type == NGX_RTMP_MSG_AMF_META) {
-        ngx_rtmp_receive_amf(s, in, in_elts_meta,
-                sizeof(in_elts_meta) / sizeof(in_elts_meta[0]));
-    } else {
-        ngx_rtmp_receive_amf(s, in, in_elts,
-                sizeof(in_elts) / sizeof(in_elts[0]));
-    }
+    ngx_rtmp_receive_amf(s, in, in_elts,
+            sizeof(in_elts) / sizeof(in_elts[0]));
 
     ngx_log_error(NGX_LOG_DEBUG, s->connection->log, 0,
             "live: onFCUnpublish: action='%s' stream='%s'",
