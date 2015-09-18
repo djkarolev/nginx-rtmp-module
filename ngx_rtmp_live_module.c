@@ -1202,6 +1202,38 @@ ngx_rtmp_live_on_fcpublish(ngx_rtmp_session_t *s, ngx_rtmp_header_t *h,
     ngx_rtmp_live_app_conf_t       *lacf;
     ngx_rtmp_live_ctx_t            *ctx;
 
+    static struct {
+        double                  trans;
+        u_char                  action[128];
+        u_char                  stream[1024];
+    } v;
+
+    static ngx_rtmp_amf_elt_t   in_elts[] = {
+
+        { NGX_RTMP_AMF_STRING,
+          ngx_null_string,
+          &v.action, 0 },
+
+        { NGX_RTMP_AMF_NUMBER,
+          ngx_null_string,
+          &v.trans, 0 },
+
+        { NGX_RTMP_AMF_NULL,
+          ngx_null_string,
+          NULL, 0 },
+
+        { NGX_RTMP_AMF_STRING,
+          ngx_null_string,
+          &v.stream, 0 },
+    };
+
+    static ngx_rtmp_amf_elt_t   in_elts_meta[] = {
+
+        { NGX_RTMP_AMF_OBJECT,
+          ngx_null_string,
+          in_inf, sizeof(in_inf) },
+    };
+
     lacf = ngx_rtmp_get_module_app_conf(s, ngx_rtmp_live_module);
     if (lacf == NULL) {
         ngx_log_error(NGX_LOG_DEBUG, s->connection->log, 0,
@@ -1216,19 +1248,28 @@ ngx_rtmp_live_on_fcpublish(ngx_rtmp_session_t *s, ngx_rtmp_header_t *h,
     }
 
     ctx = ngx_rtmp_get_module_ctx(s, ngx_rtmp_live_module);
-    if (ctx == NULL || ctx->stream == NULL) {
+    if (ctx == NULL) {
         ngx_log_error(NGX_LOG_DEBUG, s->connection->log, 0,
-                       "live: FCPublish - no context or no stream!");
+                       "live: FCPublish - no context!");
         return NGX_OK;
     }
 
-/*    if (ctx->publishing == 0) {
-        ngx_log_error(NGX_LOG_INFO, s->connection->log, 0,
-                       "live: FCPublish from non-publisher: name=%s, ip=%s", ctx->stream->name, s->addr_text);
-        return NGX_OK;
+    ngx_memzero(&v, sizeof(v));
+    if (h->type == NGX_RTMP_MSG_AMF_META) {
+        ngx_rtmp_receive_amf(s, in, in_elts_meta,
+                sizeof(in_elts_meta) / sizeof(in_elts_meta[0]));
+    } else {
+        ngx_rtmp_receive_amf(s, in, in_elts,
+                sizeof(in_elts) / sizeof(in_elts[0]));
     }
-*/
 
+    ngx_log_error(NGX_LOG_DEBUG, s->connection->log, 0,
+            "live: onFCPublish: action='%s' stream='%s'",
+            v.action, v.stream);
+
+    return ngx_rtmp_send_fcpublish(s, v.stream);
+
+/*
     static double                   trans;
 
     static ngx_rtmp_amf_elt_t       out_inf[] = {
@@ -1243,7 +1284,7 @@ ngx_rtmp_live_on_fcpublish(ngx_rtmp_session_t *s, ngx_rtmp_header_t *h,
 
         { NGX_RTMP_AMF_STRING,
           ngx_string("description"),
-          NULL, 0 },
+          v.stream, 0 },
     };
 
     static ngx_rtmp_amf_elt_t       out_elts[] = {
@@ -1266,16 +1307,11 @@ ngx_rtmp_live_on_fcpublish(ngx_rtmp_session_t *s, ngx_rtmp_header_t *h,
           sizeof(out_inf) },
     };
 
-    ngx_log_error(NGX_LOG_DEBUG, s->connection->log, 0,
-                   "create: fcpublish stream='%s'", ctx->stream->name);
-
-    out_inf[2].data = ctx->stream->name;
     trans = 0;
-
-//    return ngx_rtmp_send_fcpublish(s, ctx->stream->name);
 
     return ngx_rtmp_live_data(s, h, in, out_elts,
                               sizeof(out_elts) / sizeof(out_elts[0]));
+    */
 }
 
 
@@ -1286,6 +1322,38 @@ ngx_rtmp_live_on_fcunpublish(ngx_rtmp_session_t *s, ngx_rtmp_header_t *h,
 
     ngx_rtmp_live_app_conf_t       *lacf;
     ngx_rtmp_live_ctx_t            *ctx;
+
+    static struct {
+        double                  trans;
+        u_char                  action[128];
+        u_char                  stream[1024];
+    } v;
+
+    static ngx_rtmp_amf_elt_t   in_elts[] = {
+
+        { NGX_RTMP_AMF_STRING,
+          ngx_null_string,
+          &v.action, 0 },
+
+        { NGX_RTMP_AMF_NUMBER,
+          ngx_null_string,
+          &v.trans, 0 },
+
+        { NGX_RTMP_AMF_NULL,
+          ngx_null_string,
+          NULL, 0 },
+
+        { NGX_RTMP_AMF_STRING,
+          ngx_null_string,
+          &v.stream, 0 },
+    };
+
+    static ngx_rtmp_amf_elt_t   in_elts_meta[] = {
+
+        { NGX_RTMP_AMF_OBJECT,
+          ngx_null_string,
+          in_inf, sizeof(in_inf) },
+    };
 
     lacf = ngx_rtmp_get_module_app_conf(s, ngx_rtmp_live_module);
     if (lacf == NULL) {
@@ -1301,20 +1369,28 @@ ngx_rtmp_live_on_fcunpublish(ngx_rtmp_session_t *s, ngx_rtmp_header_t *h,
     }
 
     ctx = ngx_rtmp_get_module_ctx(s, ngx_rtmp_live_module);
-    if (ctx == NULL || ctx->stream == NULL) {
+    if (ctx == NULL) {
         ngx_log_error(NGX_LOG_DEBUG, s->connection->log, 0,
-                       "live: FCUnpublish - no context or no stream!");
+                       "live: FCUnpublish - no context!");
         return NGX_OK;
     }
 
-    // Probably wrong. Need testing, debug-log.
-/*    if (ctx->publishing == 0) {
-        ngx_log_error(NGX_LOG_INFO, s->connection->log, 0,
-                       "live: FCUnpublish from non-publisher: name=%s, ip=%s", ctx->stream->name, s->addr_text);
-        return NGX_OK;
+    ngx_memzero(&v, sizeof(v));
+    if (h->type == NGX_RTMP_MSG_AMF_META) {
+        ngx_rtmp_receive_amf(s, in, in_elts_meta,
+                sizeof(in_elts_meta) / sizeof(in_elts_meta[0]));
+    } else {
+        ngx_rtmp_receive_amf(s, in, in_elts,
+                sizeof(in_elts) / sizeof(in_elts[0]));
     }
-*/
 
+    ngx_log_error(NGX_LOG_DEBUG, s->connection->log, 0,
+            "live: onFCUnpublish: action='%s' stream='%s'",
+            v.action, v.stream);
+
+    return ngx_rtmp_send_fcunpublish(s, v.stream);
+
+/*
     static double                   trans;
 
     static ngx_rtmp_amf_elt_t       out_inf[] = {
@@ -1358,10 +1434,9 @@ ngx_rtmp_live_on_fcunpublish(ngx_rtmp_session_t *s, ngx_rtmp_header_t *h,
     out_inf[2].data = ctx->stream->name;
     trans = 0;
 
-//    return ngx_rtmp_send_fcunpublish(s, ctx->stream->name);
-
     return ngx_rtmp_live_data(s, h, in, out_elts,
                               sizeof(out_elts) / sizeof(out_elts[0]));
+    */
 }
 
 
