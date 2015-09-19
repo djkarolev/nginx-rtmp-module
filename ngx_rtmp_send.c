@@ -926,11 +926,12 @@ ngx_rtmp_create_fi(ngx_rtmp_session_t *s)
 
     ngx_libc_localtime((time_t)tv.tv_sec, &tm);
 
-    memset(buf_time, 0, sizeof(buf_time));
-    memset(buf_date, 0, sizeof(buf_date));
+    ngx_memzero(buf_time, sizeof(buf_time));
+    ngx_memzero(buf_date, sizeof(buf_date));
 
     errfl = sprintf(buf_time, "%02d:%02d:%02d.%d", tm.tm_hour, tm.tm_min, tm.tm_sec, (int)tv.tv_usec);
-    errfl = sprintf(buf_date, "%04d-%02d-%02d", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday);
+    // Strange order, but FMLE send like this
+    errfl = sprintf(buf_date, "%02d-%02d-%04d", tm.tm_mday, tm.tm_mon + 1, tm.tm_year + 1900);
 
     out_inf[0].data = buf_time;
     out_inf[1].data = buf_date;
