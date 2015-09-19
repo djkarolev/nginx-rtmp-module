@@ -888,20 +888,19 @@ ngx_rtmp_codec_meta_data(ngx_rtmp_session_t *s, ngx_rtmp_header_t *h,
 
     if (v.width != -1) ctx->width = (ngx_uint_t) v.width;
     if (v.height != -1) ctx->height = (ngx_uint_t) v.height;
-    if (v.duration != -1) ctx->duration = (ngx_uint_t) v.duration;
+    if (v.duration != -1) ctx->duration = (double) v.duration;
     if (v.frame_rate != -1) ctx->frame_rate = (double) v.frame_rate;
     if (v.video_data_rate != -1) ctx->video_data_rate = (ngx_uint_t) v.video_data_rate;
     if (v.video_codec_id_n != -1) ctx->video_codec_id = (ngx_uint_t) v.video_codec_id_n;
     if (v.audio_data_rate != -1) ctx->audio_data_rate = (ngx_uint_t) v.audio_data_rate;
     if (v.audio_codec_id_n != -1) ctx->audio_codec_id = (v.audio_codec_id_n == 0
-            ? 0 : v.audio_codec_id_n == 0
-			? NGX_RTMP_AUDIO_UNCOMPRESSED : (ngx_uint_t) v.audio_codec_id_n);
+            ? NGX_RTMP_AUDIO_UNCOMPRESSED : (ngx_uint_t) v.audio_codec_id_n);
     if (v.profile[0] != '\0') ngx_memcpy(ctx->profile, v.profile, sizeof(v.profile));
     if (v.level[0] != '\0') ngx_memcpy(ctx->level, v.level, sizeof(v.level));
 
     ngx_log_debug8(NGX_LOG_DEBUG, s->connection->log, 0,
             "codec: data frame: "
-            "width=%ui height=%ui duration=%ui frame_rate=%.3f "
+            "width=%ui height=%ui duration=%.3f frame_rate=%.3f "
             "video=%s (%ui) audio=%s (%ui)",
             ctx->width, ctx->height, ctx->duration, ctx->frame_rate,
             ngx_rtmp_get_video_codec_name(ctx->video_codec_id),
