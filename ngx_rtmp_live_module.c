@@ -1183,15 +1183,91 @@ static ngx_int_t
 ngx_rtmp_live_on_fi(ngx_rtmp_session_t *s, ngx_rtmp_header_t *h,
                            ngx_chain_t *in)
 {
-    static ngx_rtmp_amf_elt_t   out_elts[] = {
+    ngx_rtmp_live_app_conf_t       *lacf;
+    ngx_int_t                       res;
 
-            { NGX_RTMP_AMF_STRING,
-                    ngx_null_string,
-                    "onFi", 0 }
+    static struct {
+        u_char                  time[NGX_TIME_T_LEN + 1];
+        u_char                  date[NGX_TIME_T_LEN + 1];
+    } v;
+
+    static ngx_rtmp_amf_elt_t   in_dt_elts[] = {
+
+        { NGX_RTMP_AMF_STRING,
+          ngx_string("sd"),
+          &v.date, sizeof(v.date) },
+
+        { NGX_RTMP_AMF_STRING,
+          ngx_string("st"),
+          &v.time, sizeof(v.time) },
+
     };
 
-    return ngx_rtmp_live_data(s, h, in, out_elts,
-                              sizeof(out_elts) / sizeof(out_elts[0]));
+    static ngx_rtmp_amf_elt_t   in_elts[] = {
+
+        { NGX_RTMP_AMF_MIXED_ARRAY,
+          ngx_null_string,
+          in_dt_elts, sizeof(in_dt_elts) },
+    };
+
+
+    static ngx_rtmp_amf_elt_t   out_dt_elts[] = {
+
+        { NGX_RTMP_AMF_STRING,
+          ngx_string("sd"),
+          NULL, 0 },
+
+        { NGX_RTMP_AMF_STRING,
+          ngx_string("st"),
+          NULL, 0 },
+
+    };
+
+    static ngx_rtmp_amf_elt_t   out_elts[] = {
+
+        { NGX_RTMP_AMF_STRING,
+          ngx_null_string,
+          "onFi", 0 },
+
+        { NGX_RTMP_AMF_MIXED_ARRAY,
+          ngx_null_string,
+          out_dt_elts, sizeof(out_dt_elts) },
+    };
+
+    lacf = ngx_rtmp_get_module_app_conf(s, ngx_rtmp_live_module);
+    if (lacf == NULL) {
+        ngx_log_error(NGX_LOG_DEBUG, s->connection->log, 0,
+                       "live: Fi - no live config!");
+        return NGX_ERROR;
+    }
+
+    if (!lacf->live || in == NULL  || in->buf == NULL) {
+        ngx_log_error(NGX_LOG_DEBUG, s->connection->log, 0,
+                       "live: Fi - no live or no buffer!");
+        return NGX_OK;
+    }
+
+    ngx_memzero(&v, sizeof(v));
+    res = ngx_rtmp_receive_amf(s, in, in_elts,
+        sizeof(in_elts) / sizeof(in_elts[0]));
+
+    if (res == NGX_OK) {
+
+        ngx_log_error(NGX_LOG_DEBUG, s->connection->log, 0,
+            "live: onFi: date='%s', time='%s'",
+            v.date, v.time);
+
+        out_dt_elts[0].data = v.date;
+        out_dt_elts[1].data = v.time;
+
+        // Pass through datetime from publisher
+        return ngx_rtmp_live_data(s, h, in, out_elts,
+            sizeof(out_elts) / sizeof(out_elts[0]));
+
+    } else {
+        // Send our server datetime
+        return ngx_rtmp_send_fi(s);
+    }
 }
 
 static ngx_int_t
@@ -1200,7 +1276,6 @@ ngx_rtmp_live_on_fcpublish(ngx_rtmp_session_t *s, ngx_rtmp_header_t *h,
 {
 
     ngx_rtmp_live_app_conf_t       *lacf;
-    ngx_rtmp_live_ctx_t            *ctx;
 
     static struct {
         double                  trans;
@@ -1259,7 +1334,6 @@ ngx_rtmp_live_on_fcunpublish(ngx_rtmp_session_t *s, ngx_rtmp_header_t *h,
 {
 
     ngx_rtmp_live_app_conf_t       *lacf;
-    ngx_rtmp_live_ctx_t            *ctx;
 
     static struct {
         double                  trans;

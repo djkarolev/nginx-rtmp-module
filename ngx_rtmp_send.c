@@ -3,6 +3,7 @@
  * Copyright (C) Roman Arutyunyan
  */
 
+#include <sys/time.h>
 
 #include <ngx_config.h>
 #include <ngx_core.h>
@@ -864,6 +865,93 @@ ngx_rtmp_send_fcunpublish(ngx_rtmp_session_t *s, char *desc)
 {
     return ngx_rtmp_send_shared_packet(s,
            ngx_rtmp_create_fcunpublish(s, desc));
+}
+
+
+ngx_chain_t *
+ngx_rtmp_create_fi(ngx_rtmp_session_t *s)
+{
+    ngx_rtmp_header_t               h;
+    static double                   trans;
+
+    struct tm                       tm;
+    struct timeval                  tv;
+    struct timezone                 tz;
+    int                             errfl;
+
+    static u_char                   buf_time[NGX_TIME_T_LEN + 1];
+    static u_char                   buf_date[NGX_TIME_T_LEN + 1];
+
+
+    static ngx_rtmp_amf_elt_t       out_inf[] = {
+
+        { NGX_RTMP_AMF_STRING,
+          ngx_string("st"),
+          NULL, 0 },
+
+        { NGX_RTMP_AMF_STRING,
+          ngx_string("sd"),
+          NULL, 0 },
+    };
+
+    static ngx_rtmp_amf_elt_t       out_elts[] = {
+
+        { NGX_RTMP_AMF_STRING,
+          ngx_null_string,
+          "onFi", 0 },
+
+        { NGX_RTMP_AMF_NUMBER,
+          ngx_null_string,
+          &trans, 0 },
+
+        { NGX_RTMP_AMF_NULL,
+          ngx_null_string,
+          NULL, 0 },
+
+        { NGX_RTMP_AMF_OBJECT,
+          ngx_null_string,
+          out_inf,
+          sizeof(out_inf) },
+    };
+
+    trans = 0;
+
+    errfl = gettimeofday(&tv, &tz);
+
+    if (errfl) {
+            ngx_log_error(NGX_LOG_DEBUG, s->connection->log, 0,
+                   "create: fi - can't get time!");
+            return NULL;
+    }
+
+    ngx_libc_localtime((time_t)tv.tv_sec, &tm);
+
+    ngx_memzero(buf_time, sizeof(buf_time));
+    ngx_memzero(buf_date, sizeof(buf_date));
+
+    errfl = sprintf(buf_time, "%02d:%02d:%02d.%d", tm.tm_hour, tm.tm_min, tm.tm_sec, (int)tv.tv_usec);
+    // Strange order, but FMLE send like this
+    errfl = sprintf(buf_date, "%02d-%02d-%04d", tm.tm_mday, tm.tm_mon + 1, tm.tm_year + 1900);
+
+    out_inf[0].data = buf_time;
+    out_inf[1].data = buf_date;
+
+    memset(&h, 0, sizeof(h));
+
+    h.type = NGX_RTMP_MSG_AMF_CMD;
+    h.csid = NGX_RTMP_CSID_AMF;
+    h.msid = NGX_RTMP_MSID;
+
+    return ngx_rtmp_create_amf(s, &h, out_elts,
+                               sizeof(out_elts) / sizeof(out_elts[0]));
+}
+
+
+ngx_int_t
+ngx_rtmp_send_fi(ngx_rtmp_session_t *s)
+{
+    return ngx_rtmp_send_shared_packet(s,
+           ngx_rtmp_create_fi(s));
 }
 
 
