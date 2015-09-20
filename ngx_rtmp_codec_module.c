@@ -358,7 +358,8 @@ static void
 ngx_rtmp_codec_parse_avc_header(ngx_rtmp_session_t *s, ngx_chain_t *in)
 {
     ngx_uint_t              profile_idc, width, height, crop_left, crop_right,
-                            crop_top, crop_bottom, frame_mbs_only, n, cf_idc,
+                            crop_top, crop_bottom, frame_mbs_only, n, cf_n, cf_idc,
+//                            num_ref_frames;
                             num_ref_frames, sl_size, sl_index, sl_udelta;
     ngx_int_t               sl_last, sl_next, sl_delta;
     ngx_rtmp_codec_ctx_t   *ctx;
@@ -433,7 +434,7 @@ ngx_rtmp_codec_parse_avc_header(ngx_rtmp_session_t *s, ngx_chain_t *in)
         /* seq scaling matrix present */
         if (ngx_rtmp_bit_read(&br, 1)) {
 
-            for (n = 0; n < (cf_idc != 3 ? 8u : 12u); n++) {
+            for (n = 0, cf_n = (cf_idc != 3 ? 8u : 12u); n < cf_n; n++) {
 
                 /* seq scaling list present */
                 if (ngx_rtmp_bit_read(&br, 1)) {
