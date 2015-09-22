@@ -735,7 +735,7 @@ ngx_rtmp_send_close_method(ngx_rtmp_session_t *s, char *methodName)
 
 
 ngx_chain_t *
-ngx_rtmp_create_fcpublish(ngx_rtmp_session_t *s, char *desc)
+ngx_rtmp_create_fcpublish(ngx_rtmp_session_t *s, u_char *desc)
 {
     ngx_rtmp_header_t               h;
     static double                   trans;
@@ -794,7 +794,7 @@ ngx_rtmp_create_fcpublish(ngx_rtmp_session_t *s, char *desc)
 
 
 ngx_int_t
-ngx_rtmp_send_fcpublish(ngx_rtmp_session_t *s, char *desc)
+ngx_rtmp_send_fcpublish(ngx_rtmp_session_t *s, u_char *desc)
 {
     return ngx_rtmp_send_shared_packet(s,
            ngx_rtmp_create_fcpublish(s, desc));
@@ -802,7 +802,7 @@ ngx_rtmp_send_fcpublish(ngx_rtmp_session_t *s, char *desc)
 
 
 ngx_chain_t *
-ngx_rtmp_create_fcunpublish(ngx_rtmp_session_t *s, char *desc)
+ngx_rtmp_create_fcunpublish(ngx_rtmp_session_t *s, u_char *desc)
 {
     ngx_rtmp_header_t               h;
     static double                   trans;
@@ -861,7 +861,7 @@ ngx_rtmp_create_fcunpublish(ngx_rtmp_session_t *s, char *desc)
 
 
 ngx_int_t
-ngx_rtmp_send_fcunpublish(ngx_rtmp_session_t *s, char *desc)
+ngx_rtmp_send_fcunpublish(ngx_rtmp_session_t *s, u_char *desc)
 {
     return ngx_rtmp_send_shared_packet(s,
            ngx_rtmp_create_fcunpublish(s, desc));
@@ -929,9 +929,9 @@ ngx_rtmp_create_fi(ngx_rtmp_session_t *s)
     ngx_memzero(buf_time, sizeof(buf_time));
     ngx_memzero(buf_date, sizeof(buf_date));
 
-    errfl = sprintf(buf_time, "%02d:%02d:%02d.%d", tm.tm_hour, tm.tm_min, tm.tm_sec, (int)tv.tv_usec);
+    errfl = sprintf((char *)buf_time, "%02d:%02d:%02d.%d", tm.tm_hour, tm.tm_min, tm.tm_sec, (int)tv.tv_usec);
     // Strange order, but FMLE send like this
-    errfl = sprintf(buf_date, "%02d-%02d-%04d", tm.tm_mday, tm.tm_mon + 1, tm.tm_year + 1900);
+    errfl = sprintf((char *)buf_date, "%02d-%02d-%04d", tm.tm_mday, tm.tm_mon + 1, tm.tm_year + 1900);
 
     out_inf[0].data = buf_time;
     out_inf[1].data = buf_date;
