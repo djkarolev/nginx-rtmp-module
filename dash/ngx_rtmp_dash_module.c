@@ -376,9 +376,9 @@ ngx_rtmp_dash_write_playlist(ngx_rtmp_session_t *s)
     ngx_libc_gmtime((ngx_uint_t) (depth_msec / 1000), &tm);
 
     *ngx_sprintf(buffer_depth, "P%dY%02dM%02dDT%dH%02dM%02d.%02dS",
-		 tm.tm_year - 70, tm.tm_mon,
-		 tm.tm_mday - 1, tm.tm_hour,
-		 tm.tm_min, tm.tm_sec,
+                 tm.tm_year - 70, tm.tm_mon,
+                 tm.tm_mday - 1, tm.tm_hour,
+                 tm.tm_min, tm.tm_sec,
                  (ngx_uint_t) ((depth_msec % 1000) / 10));
 
     last = buffer + sizeof(buffer);
