@@ -222,7 +222,7 @@ ngx_rtmp_dash_write_playlist(ngx_rtmp_session_t *s)
     struct tm                  tm;
     ngx_str_t                  noname, *name;
     ngx_uint_t                 i, frame_rate_num, frame_rate_denom;
-    ngx_uint_t                 depth_hour, depth_min, depth_msec;
+    ngx_uint_t                 depth_msec;
     ngx_rtmp_dash_ctx_t       *ctx;
     ngx_rtmp_codec_ctx_t      *codec_ctx;
     ngx_rtmp_dash_frag_t      *f;
@@ -231,7 +231,7 @@ ngx_rtmp_dash_write_playlist(ngx_rtmp_session_t *s)
     static u_char              buffer[NGX_RTMP_DASH_BUFSIZE];
     static u_char              start_time[sizeof("1970-09-28T12:00:00+06:00")];
     static u_char              end_time[sizeof("1970-09-28T12:00:00+06:00")];
-    static u_char              buffer_depth[sizeof("PT000D00H00M00.00S")];
+    static u_char              buffer_depth[sizeof("P00Y00M00DT00H00M00.00S")];
     static u_char              frame_rate[(NGX_INT_T_LEN * 2) + 2];
 
     dacf = ngx_rtmp_get_module_app_conf(s, ngx_rtmp_dash_module);
@@ -373,14 +373,12 @@ ngx_rtmp_dash_write_playlist(ngx_rtmp_session_t *s)
                  ngx_rtmp_dash_get_frag(s, ctx->nfrags - 1)->duration - 
                  ngx_rtmp_dash_get_frag(s, 0)->timestamp);
 
-    depth_hour = (ngx_uint_t) (depth_msec / 3600 / 1000);
-    depth_msec -= depth_hour * (3600 * 1000);
-    depth_min = (ngx_uint_t) (depth_msec / 60 / 1000);
-    depth_msec -= depth_min * (60 * 1000);
+    ngx_libc_gmtime((ngx_uint_t) (depth_msec / 1000), &tm);
 
-    *ngx_sprintf(buffer_depth, "PT%dH%02dM%02d.%02dS",
-                 depth_hour, depth_min,
-                 (ngx_uint_t) (depth_msec / 1000),
+    *ngx_sprintf(buffer_depth, "P%dY%02dM%02dDT%dH%02dM%02d.%02dS",
+		 tm.tm_year - 70, tm.tm_mon,
+		 tm.tm_mday - 1, tm.tm_hour,
+		 tm.tm_min, tm.tm_sec,
                  (ngx_uint_t) ((depth_msec % 1000) / 10));
 
     last = buffer + sizeof(buffer);
