@@ -379,7 +379,7 @@ ngx_rtmp_dash_write_playlist(ngx_rtmp_session_t *s)
                  tm.tm_year - 70, tm.tm_mon,
                  tm.tm_mday - 1, tm.tm_hour,
                  tm.tm_min, tm.tm_sec,
-                 (ngx_uint_t) ((depth_msec % 1000) / 10));
+                 (ngx_uint_t) ((depth_msec % 1000) / 10)) = 0;
 
     last = buffer + sizeof(buffer);
 
