@@ -72,7 +72,7 @@ static u_char ngx_rtmp_mpegts_header[] = {
 static u_char ngx_rtmp_mpegts_header_mp3[] = {
     0x03, 0xe1, 0x01, 0xf0, 0x00, /* mp3 */
     /* CRC */
-    0xd7, 0x86, 0x44, 0x5c, /* crc for mp3 */
+    0x4e, 0x59, 0x3d, 0x1e, /* crc for mp3 */
 };
 
 static u_char ngx_rtmp_mpegts_header_aac[] = {
