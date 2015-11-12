@@ -487,9 +487,11 @@ ngx_rtmp_notify_disconnect_create(ngx_rtmp_session_t *s, void *arg,
     }
 
     b = ngx_create_temp_buf(pool,
-                            sizeof("&call=disconnect") +
-                            sizeof("&app=") + s->app.len * 3 +
-                            1 + s->args.len);
+            sizeof("&call=disconnect") +
+            sizeof("&app=") + s->app.len * 3 +
+            sizeof("&bytes_in=") - 1 + NGX_INT32_LEN +
+            sizeof("&bytes_out=") - 1 + NGX_INT32_LEN +
+            1 + s->args.len);
     if (b == NULL) {
         return NULL;
     }
@@ -503,6 +505,12 @@ ngx_rtmp_notify_disconnect_create(ngx_rtmp_session_t *s, void *arg,
     b->last = ngx_cpymem(b->last, (u_char*) "&app=", sizeof("&app=") - 1);
     b->last = (u_char*) ngx_escape_uri(b->last, s->app.data, s->app.len,
                                        NGX_ESCAPE_ARGS);
+
+    b->last = ngx_cpymem(b->last, (u_char*) "&bytes_in=", sizeof("&bytes_in=") -1);
+    b->last = ngx_sprintf(b->last, "%ui", (ngx_uint_t) s->in_bytes);
+
+    b->last = ngx_cpymem(b->last, (u_char*) "&bytes_out=", sizeof("&bytes_out=") -1);
+    b->last = ngx_sprintf(b->last, "%ui", (ngx_uint_t) s->out_bytes);
 
     if (s->args.len) {
         *b->last++ = '&';
@@ -666,10 +674,13 @@ ngx_rtmp_notify_done_create(ngx_rtmp_session_t *s, void *arg,
     args_len = ctx ? ngx_strlen(ctx->args) : 0;
 
     b = ngx_create_temp_buf(pool,
-                            sizeof("&call=") + cbname_len +
-                            sizeof("&app=") + s->app.len * 3 +
-                            sizeof("&name=") + name_len * 3 +
-                            1 + args_len);
+            sizeof("&call=") + cbname_len +
+            sizeof("&app=") + s->app.len * 3 +
+            sizeof("&name=") + name_len * 3 +
+            sizeof("&bytes_in=") - 1 + NGX_INT32_LEN +
+            sizeof("&bytes_out=") - 1 + NGX_INT32_LEN +
+            1 + args_len);
+
     if (b == NULL) {
         return NULL;
     }
@@ -689,6 +700,12 @@ ngx_rtmp_notify_done_create(ngx_rtmp_session_t *s, void *arg,
         b->last = (u_char*) ngx_escape_uri(b->last, ctx->name, name_len,
                                            NGX_ESCAPE_ARGS);
     }
+
+    b->last = ngx_cpymem(b->last, (u_char*) "&bytes_in=", sizeof("&bytes_in=") -1);
+    b->last = ngx_sprintf(b->last, "%ui", (ngx_uint_t) s->in_bytes);
+
+    b->last = ngx_cpymem(b->last, (u_char*) "&bytes_out=", sizeof("&bytes_out=") -1);
+    b->last = ngx_sprintf(b->last, "%ui", (ngx_uint_t) s->out_bytes);
 
     if (args_len) {
         *b->last++ = '&';
@@ -794,12 +811,15 @@ ngx_rtmp_notify_record_done_create(ngx_rtmp_session_t *s, void *arg,
     args_len  = ngx_strlen(ctx->args);
 
     b = ngx_create_temp_buf(pool,
-                            sizeof("&call=record_done") +
-                            sizeof("&app=") + s->app.len * 3 +
-                            sizeof("&recorder=") + v->recorder.len +
-                            sizeof("&name=") + name_len * 3 +
-                            sizeof("&path=") + v->path.len * 3 +
-                            1 + args_len);
+            sizeof("&call=record_done") +
+            sizeof("&app=") + s->app.len * 3 +
+            sizeof("&recorder=") + v->recorder.len +
+            sizeof("&name=") + name_len * 3 +
+            sizeof("&path=") + v->path.len * 3 +
+            sizeof("&bytes_in=") - 1 + NGX_INT32_LEN +
+            sizeof("&bytes_out=") - 1 + NGX_INT32_LEN +
+            1 + args_len);
+
     if (b == NULL) {
         return NULL;
     }
@@ -826,6 +846,12 @@ ngx_rtmp_notify_record_done_create(ngx_rtmp_session_t *s, void *arg,
     b->last = ngx_cpymem(b->last, (u_char*) "&path=", sizeof("&path=") - 1);
     b->last = (u_char*) ngx_escape_uri(b->last, v->path.data, v->path.len,
                                        NGX_ESCAPE_ARGS);
+
+    b->last = ngx_cpymem(b->last, (u_char*) "&bytes_in=", sizeof("&bytes_in=") -1);
+    b->last = ngx_sprintf(b->last, "%ui", (ngx_uint_t) s->in_bytes);
+
+    b->last = ngx_cpymem(b->last, (u_char*) "&bytes_out=", sizeof("&bytes_out=") -1);
+    b->last = ngx_sprintf(b->last, "%ui", (ngx_uint_t) s->out_bytes);
 
     if (args_len) {
         *b->last++ = '&';
