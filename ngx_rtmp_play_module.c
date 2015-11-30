@@ -716,6 +716,9 @@ ngx_rtmp_play_parse_index(char type, u_char *args)
 static ngx_int_t
 ngx_rtmp_play_play(ngx_rtmp_session_t *s, ngx_rtmp_play_t *v)
 {
+    ngx_log_error(NGX_LOG_DEBUG, s->connection->log, 0,
+                  "play: ngx_rtmp_play_play");
+
     ngx_rtmp_play_main_conf_t      *pmcf;
     ngx_rtmp_play_app_conf_t       *pacf;
     ngx_rtmp_play_ctx_t            *ctx;
@@ -827,9 +830,15 @@ ngx_rtmp_play_play(ngx_rtmp_session_t *s, ngx_rtmp_play_t *v)
     ngx_log_debug1(NGX_LOG_DEBUG_RTMP, s->connection->log, 0,
                    "play: fmt=%V", &ctx->fmt->name);
 
+    ngx_log_error(NGX_LOG_DEBUG, s->connection->log, 0,
+                  "play: ngx_rtmp_play_play: next_entry");
+
     return ngx_rtmp_play_next_entry(s, v);
 
 next:
+    ngx_log_error(NGX_LOG_DEBUG, s->connection->log, 0,
+              "play: ngx_rtmp_play_play: next");
+
     return next_play(s, v);
 }
 
@@ -837,6 +846,9 @@ next:
 static ngx_int_t
 ngx_rtmp_play_next_entry(ngx_rtmp_session_t *s, ngx_rtmp_play_t *v)
 {
+    ngx_log_error(NGX_LOG_DEBUG, s->connection->log, 0,
+                  "play: ngx_rtmp_play_next_entry");
+
     ngx_rtmp_play_app_conf_t   *pacf;
     ngx_rtmp_play_ctx_t        *ctx;
     ngx_rtmp_play_entry_t      *pe;
@@ -881,6 +893,9 @@ ngx_rtmp_play_next_entry(ngx_rtmp_session_t *s, ngx_rtmp_play_t *v)
         /* open remote */
 
         if (pe->url) {
+            ngx_log_error(NGX_LOG_DEBUG, s->connection->log, 0,
+                          "play: ngx_rtmp_play_next_entry: open remote");
+
             return ngx_rtmp_play_open_remote(s, v);
         }
 
@@ -917,11 +932,18 @@ ngx_rtmp_play_next_entry(ngx_rtmp_session_t *s, ngx_rtmp_play_t *v)
                        "play: open local file '%s'", path);
 
         if (ngx_rtmp_play_open(s, v->start) != NGX_OK) {
+
+            ngx_log_error(NGX_LOG_DEBUG, s->connection->log, 0,
+                          "play: ngx_rtmp_play_next_entry: error open");
+
             return NGX_ERROR;
         }
 
         break;
     }
+
+    ngx_log_error(NGX_LOG_DEBUG, s->connection->log, 0,
+                  "play: ngx_rtmp_play_next_entry: next");
 
     return next_play(s, v);
 }
@@ -1048,6 +1070,9 @@ ngx_rtmp_play_remote_create(ngx_rtmp_session_t *s, void *arg, ngx_pool_t *pool)
 static ngx_int_t
 ngx_rtmp_play_remote_handle(ngx_rtmp_session_t *s, void *arg, ngx_chain_t *in)
 {
+    ngx_log_error(NGX_LOG_DEBUG, s->connection->log, 0,
+                  "play: ngx_rtmp_play_remote_handle");
+
     ngx_rtmp_play_t        *v = arg;
 
     ngx_rtmp_play_ctx_t    *ctx;
@@ -1055,6 +1080,8 @@ ngx_rtmp_play_remote_handle(ngx_rtmp_session_t *s, void *arg, ngx_chain_t *in)
     ctx = ngx_rtmp_get_module_ctx(s, ngx_rtmp_play_module);
 
     if (ctx->nbody == 0) {
+        ngx_log_error(NGX_LOG_DEBUG, s->connection->log, 0,
+                      "play: ngx_rtmp_play_remote_handle: next_entry");
         return ngx_rtmp_play_next_entry(s, v);
     }
 
@@ -1066,8 +1093,15 @@ ngx_rtmp_play_remote_handle(ngx_rtmp_session_t *s, void *arg, ngx_chain_t *in)
                    "play: open remote file");
 
     if (ngx_rtmp_play_open(s, v->start) != NGX_OK) {
+
+        ngx_log_error(NGX_LOG_DEBUG, s->connection->log, 0,
+                      "play: ngx_rtmp_play_remote_handle: error open");
+
         return NGX_ERROR;
     }
+
+    ngx_log_error(NGX_LOG_DEBUG, s->connection->log, 0,
+                  "play: ngx_rtmp_play_remote_handle: next");
 
     return next_play(s, (ngx_rtmp_play_t *)arg);
 }

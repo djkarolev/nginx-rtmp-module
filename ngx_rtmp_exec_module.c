@@ -1194,6 +1194,9 @@ next:
 static ngx_int_t
 ngx_rtmp_exec_play(ngx_rtmp_session_t *s, ngx_rtmp_play_t *v)
 {
+    ngx_log_error(NGX_LOG_DEBUG, s->connection->log, 0,
+                  "exec: ngx_rtmp_exec_play");
+
     ngx_rtmp_exec_ctx_t       *ctx;
     ngx_rtmp_exec_pull_ctx_t  *pctx;
     ngx_rtmp_exec_app_conf_t  *eacf;
@@ -1224,6 +1227,8 @@ ngx_rtmp_exec_play(ngx_rtmp_session_t *s, ngx_rtmp_play_t *v)
     }
 
 next:
+    ngx_log_error(NGX_LOG_DEBUG, s->connection->log, 0,
+              "exec: ngx_rtmp_exec_play: next");
     return next_play(s, v);
 }
 
