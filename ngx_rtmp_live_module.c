@@ -1152,7 +1152,7 @@ ngx_rtmp_live_data(ngx_rtmp_session_t *s, ngx_rtmp_header_t *h,
 
     return NGX_OK;
 }
-/*
+
 static ngx_int_t
 ngx_rtmp_live_on_cue_point(ngx_rtmp_session_t *s, ngx_rtmp_header_t *h,
                            ngx_chain_t *in)
@@ -1182,7 +1182,7 @@ ngx_rtmp_live_on_text_data(ngx_rtmp_session_t *s, ngx_rtmp_header_t *h,
     return ngx_rtmp_live_data(s, h, in, out_elts,
             sizeof(out_elts) / sizeof(out_elts[0]));
 }
-*/
+
 static ngx_int_t
 ngx_rtmp_live_on_fi(ngx_rtmp_session_t *s, ngx_rtmp_header_t *h,
                            ngx_chain_t *in)
