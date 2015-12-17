@@ -16,6 +16,7 @@ static ngx_rtmp_publish_pt              next_publish;
 static ngx_rtmp_close_stream_pt         next_close_stream;
 static ngx_rtmp_stream_begin_pt         next_stream_begin;
 static ngx_rtmp_stream_eof_pt           next_stream_eof;
+static ngx_rtmp_playlist_pt             next_playlist;
 
 
 static char * ngx_rtmp_hls_variant(ngx_conf_t *cf, ngx_command_t *cmd,
@@ -422,6 +423,8 @@ ngx_rtmp_hls_write_variant_playlist(ngx_rtmp_session_t *s)
     ngx_rtmp_hls_variant_t   *var;
     ngx_rtmp_hls_app_conf_t  *hacf;
 
+    ngx_rtmp_playlist_t      v;
+
     hacf = ngx_rtmp_get_module_app_conf(s, ngx_rtmp_hls_module);
     ctx = ngx_rtmp_get_module_ctx(s, ngx_rtmp_hls_module);
 
@@ -497,7 +500,11 @@ ngx_rtmp_hls_write_variant_playlist(ngx_rtmp_session_t *s)
         return NGX_ERROR;
     }
 
-    return NGX_OK;
+    ngx_memzero(&v, sizeof(v));
+    ngx_str_set(&(v.module), "hls");
+    v.playlist.data = ctx->playlist.data;
+    v.playlist.len = ctx->playlist.len;
+    return next_playlist(s, &v);
 }
 
 
@@ -516,6 +523,10 @@ ngx_rtmp_hls_write_playlist(ngx_rtmp_session_t *s)
     uint64_t                        prev_key_id;
     const char                     *sep, *key_sep;
 
+    ngx_rtmp_playlist_t             v;
+
+    ngx_log_error(NGX_LOG_DEBUG, s->connection->log, 0,
+                  "hls: write playlist");
 
     hacf = ngx_rtmp_get_module_app_conf(s, ngx_rtmp_hls_module);
     ctx = ngx_rtmp_get_module_ctx(s, ngx_rtmp_hls_module);
@@ -638,7 +649,11 @@ ngx_rtmp_hls_write_playlist(ngx_rtmp_session_t *s)
         return ngx_rtmp_hls_write_variant_playlist(s);
     }
 
-    return NGX_OK;
+    ngx_memzero(&v, sizeof(v));
+    ngx_str_set(&(v.module), "hls");
+    v.playlist.data = ctx->playlist.data;
+    v.playlist.len = ctx->playlist.len;
+    return next_playlist(s, &v);
 
 write_err:
     ngx_log_error(NGX_LOG_ERR, s->connection->log, ngx_errno,
@@ -1658,6 +1673,9 @@ ngx_rtmp_hls_update_fragment(ngx_rtmp_session_t *s, uint64_t ts,
     ngx_buf_t                  *b;
     int64_t                     d;
 
+    ngx_log_error(NGX_LOG_DEBUG, s->connection->log, 0,
+                  "hls: update fragment");
+
     hacf = ngx_rtmp_get_module_app_conf(s, ngx_rtmp_hls_module);
     ctx = ngx_rtmp_get_module_ctx(s, ngx_rtmp_hls_module);
     f = NULL;
@@ -2166,6 +2184,9 @@ ngx_rtmp_hls_stream_begin(ngx_rtmp_session_t *s, ngx_rtmp_stream_begin_t *v)
 static ngx_int_t
 ngx_rtmp_hls_stream_eof(ngx_rtmp_session_t *s, ngx_rtmp_stream_eof_t *v)
 {
+    ngx_log_error(NGX_LOG_DEBUG, s->connection->log, 0,
+                  "hls: stream eof");
+
     ngx_rtmp_hls_flush_audio(s);
 
     ngx_rtmp_hls_close_fragment(s);
@@ -2383,6 +2404,13 @@ ngx_rtmp_hls_variant(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 }
 
 
+static ngx_int_t
+ngx_rtmp_hls_playlist(ngx_rtmp_session_t *s, ngx_rtmp_playlist_t *v)
+{
+    return next_playlist(s, v);
+}
+
+
 static void *
 ngx_rtmp_hls_create_app_conf(ngx_conf_t *cf)
 {
@@ -2558,6 +2586,9 @@ ngx_rtmp_hls_postconfiguration(ngx_conf_t *cf)
 
     next_stream_eof = ngx_rtmp_stream_eof;
     ngx_rtmp_stream_eof = ngx_rtmp_hls_stream_eof;
+
+    next_playlist = ngx_rtmp_playlist;
+    ngx_rtmp_playlist = ngx_rtmp_hls_playlist;
 
     return NGX_OK;
 }

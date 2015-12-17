@@ -12,6 +12,7 @@ static ngx_rtmp_publish_pt              next_publish;
 static ngx_rtmp_close_stream_pt         next_close_stream;
 static ngx_rtmp_stream_begin_pt         next_stream_begin;
 static ngx_rtmp_stream_eof_pt           next_stream_eof;
+static ngx_rtmp_playlist_pt             next_playlist;
 
 
 static ngx_int_t ngx_rtmp_dash_postconfiguration(ngx_conf_t *cf);
@@ -227,6 +228,8 @@ ngx_rtmp_dash_write_playlist(ngx_rtmp_session_t *s)
     ngx_rtmp_codec_ctx_t      *codec_ctx;
     ngx_rtmp_dash_frag_t      *f;
     ngx_rtmp_dash_app_conf_t  *dacf;
+
+    ngx_rtmp_playlist_t        v;
 
     static u_char              buffer[NGX_RTMP_DASH_BUFSIZE];
     static u_char              start_time[sizeof("1970-09-28T12:00:00+06:00")];
@@ -491,7 +494,11 @@ ngx_rtmp_dash_write_playlist(ngx_rtmp_session_t *s)
         return NGX_ERROR;
     }
 
-    return NGX_OK;
+    ngx_memzero(&v, sizeof(v));
+    ngx_str_set(&(v.module), "dash");
+    v.playlist.data = ctx->playlist.data;
+    v.playlist.len = ctx->playlist.len;
+    return next_playlist(s, &v);
 }
 
 
@@ -1464,6 +1471,11 @@ ngx_rtmp_dash_cleanup(void *data)
     return cleanup->playlen / 500;
 }
 
+static ngx_int_t
+ngx_rtmp_dash_playlist(ngx_rtmp_session_t *s, ngx_rtmp_playlist_t *v)
+{
+    return next_playlist(s, v);
+}
 
 static void *
 ngx_rtmp_dash_create_app_conf(ngx_conf_t *cf)
@@ -1564,6 +1576,9 @@ ngx_rtmp_dash_postconfiguration(ngx_conf_t *cf)
 
     next_stream_eof = ngx_rtmp_stream_eof;
     ngx_rtmp_stream_eof = ngx_rtmp_dash_stream_eof;
+
+    next_playlist = ngx_rtmp_playlist;
+    ngx_rtmp_playlist = ngx_rtmp_dash_playlist;
 
     return NGX_OK;
 }

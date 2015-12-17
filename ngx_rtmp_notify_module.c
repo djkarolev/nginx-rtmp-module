@@ -20,6 +20,7 @@ static ngx_rtmp_publish_pt                      next_publish;
 static ngx_rtmp_play_pt                         next_play;
 static ngx_rtmp_close_stream_pt                 next_close_stream;
 static ngx_rtmp_record_done_pt                  next_record_done;
+static ngx_rtmp_playlist_pt                     next_playlist;
 
 
 static char *ngx_rtmp_notify_on_srv_event(ngx_conf_t *cf, ngx_command_t *cmd,
@@ -57,6 +58,7 @@ enum {
     NGX_RTMP_NOTIFY_DONE,
     NGX_RTMP_NOTIFY_RECORD_DONE,
     NGX_RTMP_NOTIFY_UPDATE,
+    NGX_RTMP_NOTIFY_PLAYLIST,
     NGX_RTMP_NOTIFY_APP_MAX
 };
 
@@ -161,6 +163,13 @@ static ngx_command_t  ngx_rtmp_notify_commands[] = {
       NULL },
 
     { ngx_string("on_update"),
+      NGX_RTMP_MAIN_CONF|NGX_RTMP_SRV_CONF|NGX_RTMP_APP_CONF|NGX_CONF_TAKE1,
+      ngx_rtmp_notify_on_app_event,
+      NGX_RTMP_APP_CONF_OFFSET,
+      0,
+      NULL },
+
+    { ngx_string("on_playlist"),
       NGX_RTMP_MAIN_CONF|NGX_RTMP_SRV_CONF|NGX_RTMP_APP_CONF|NGX_CONF_TAKE1,
       ngx_rtmp_notify_on_app_event,
       NGX_RTMP_APP_CONF_OFFSET,
@@ -859,6 +868,65 @@ ngx_rtmp_notify_record_done_create(ngx_rtmp_session_t *s, void *arg,
     }
 
     return ngx_rtmp_notify_create_request(s, pool, NGX_RTMP_NOTIFY_RECORD_DONE,
+                                          pl);
+}
+
+static ngx_chain_t *
+ngx_rtmp_notify_playlist_create(ngx_rtmp_session_t *s, void *arg,
+                                   ngx_pool_t *pool)
+{
+    ngx_rtmp_playlist_t            *v = arg;
+
+    ngx_rtmp_notify_ctx_t          *ctx;
+    ngx_chain_t                    *pl;
+    ngx_buf_t                      *b;
+    size_t                          name_len;
+
+    ctx = ngx_rtmp_get_module_ctx(s, ngx_rtmp_notify_module);
+
+    pl = ngx_alloc_chain_link(pool);
+    if (pl == NULL) {
+        return NULL;
+    }
+
+    name_len  = ngx_strlen(ctx->name);
+
+    b = ngx_create_temp_buf(pool,
+            sizeof("&call=playlist") +
+            sizeof("&module=") + v->module.len +
+            sizeof("&app=") + s->app.len * 3 +
+            sizeof("&name=") + name_len * 3 +
+            sizeof("&path=") + v->playlist.len * 3 +
+            1);
+
+    if (b == NULL) {
+        return NULL;
+    }
+
+    pl->buf = b;
+    pl->next = NULL;
+
+    b->last = ngx_cpymem(b->last, (u_char*) "&call=playlist",
+                         sizeof("&call=playlist") - 1);
+
+    b->last = ngx_cpymem(b->last, (u_char *) "&module=",
+                         sizeof("&module=") - 1);
+    b->last = (u_char*) ngx_escape_uri(b->last, v->module.data,
+                                       v->module.len, NGX_ESCAPE_ARGS);
+
+    b->last = ngx_cpymem(b->last, (u_char*) "&app=", sizeof("&app=") - 1);
+    b->last = (u_char*) ngx_escape_uri(b->last, s->app.data, s->app.len,
+                                       NGX_ESCAPE_ARGS);
+
+    b->last = ngx_cpymem(b->last, (u_char*) "&name=", sizeof("&name=") - 1);
+    b->last = (u_char*) ngx_escape_uri(b->last, ctx->name, name_len,
+                                       NGX_ESCAPE_ARGS);
+
+    b->last = ngx_cpymem(b->last, (u_char*) "&path=", sizeof("&path=") - 1);
+    b->last = (u_char*) ngx_escape_uri(b->last, v->playlist.data, v->playlist.len,
+                                       NGX_ESCAPE_ARGS);
+
+    return ngx_rtmp_notify_create_request(s, pool, NGX_RTMP_NOTIFY_PLAYLIST,
                                           pl);
 }
 
@@ -1830,6 +1898,35 @@ ngx_rtmp_notify_parse_url(ngx_conf_t *cf, ngx_str_t *url)
 }
 
 
+static ngx_int_t
+ngx_rtmp_notify_playlist(ngx_rtmp_session_t *s, ngx_rtmp_playlist_t *v)
+{
+    ngx_rtmp_netcall_init_t         ci;
+    ngx_rtmp_notify_app_conf_t     *nacf;
+
+    nacf = ngx_rtmp_get_module_app_conf(s, ngx_rtmp_notify_module);
+    if (nacf == NULL || nacf->url[NGX_RTMP_NOTIFY_PLAYLIST] == NULL) {
+        goto next;
+    }
+
+    ngx_log_error(NGX_LOG_INFO, s->connection->log, 0,
+                  "notify: playlist url='%V'",
+                  &nacf->url[NGX_RTMP_NOTIFY_PLAYLIST]->url);
+
+    ngx_memzero(&ci, sizeof(ci));
+
+    ci.url    = nacf->url[NGX_RTMP_NOTIFY_PLAYLIST];
+    ci.create = ngx_rtmp_notify_playlist_create;
+    ci.arg    = v;
+
+    ngx_rtmp_netcall_create(s, &ci);
+
+next:
+    return next_playlist(s, v);
+}
+
+
+
 static char *
 ngx_rtmp_notify_on_srv_event(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 {
@@ -1897,6 +1994,10 @@ ngx_rtmp_notify_on_app_event(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
         case sizeof("on_update") - 1:
             n = NGX_RTMP_NOTIFY_UPDATE;
+            break;
+
+        case sizeof("on_playlist") - 1:
+            n = NGX_RTMP_NOTIFY_PLAYLIST;
             break;
 
         case sizeof("on_publish") - 1:
@@ -2005,6 +2106,9 @@ ngx_rtmp_notify_postconfiguration(ngx_conf_t *cf)
 
     next_record_done = ngx_rtmp_record_done;
     ngx_rtmp_record_done = ngx_rtmp_notify_record_done;
+
+    next_playlist = ngx_rtmp_playlist;
+    ngx_rtmp_playlist = ngx_rtmp_notify_playlist;
 
     return NGX_OK;
 }
