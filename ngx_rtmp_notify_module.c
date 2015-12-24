@@ -1368,7 +1368,7 @@ static ngx_int_t
 ngx_rtmp_notify_play_handle(ngx_rtmp_session_t *s,
         void *arg, ngx_chain_t *in)
 {
-    ngx_log_debug(NGX_LOG_DEBUG, s->connection->log, 0,
+    ngx_log_debug0(NGX_LOG_DEBUG, s->connection->log, 0,
                   "notify: ngx_rtmp_notify_play_handle");
 
     ngx_rtmp_play_t            *v = arg;
@@ -1464,7 +1464,7 @@ ngx_rtmp_notify_play_handle(ngx_rtmp_session_t *s,
     ngx_rtmp_relay_pull(s, &local_name, &target);
 
 next:
-    ngx_log_debug(NGX_LOG_DEBUG, s->connection->log, 0,
+    ngx_log_debug0(NGX_LOG_DEBUG, s->connection->log, 0,
               "notify: ngx_rtmp_notify_play_handle: next");
 
     return next_play(s, v);
