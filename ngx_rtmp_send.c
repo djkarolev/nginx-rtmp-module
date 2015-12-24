@@ -603,9 +603,10 @@ ngx_rtmp_create_redirect_status(ngx_rtmp_session_t *s, char *callMethod, char *d
     static double                   dtrans;
     static double                   dcode;
 
-    ngx_log_error(NGX_LOG_INFO, s->connection->log, 0,
+    ngx_log_debug(NGX_LOG_DEBUG, s->connection->log, 0,
                    "create redirect status: got data");
-    ngx_log_error(NGX_LOG_INFO, s->connection->log, 0,
+
+    ngx_log_debug(NGX_LOG_DEBUG, s->connection->log, 0,
                    "create redirect status: method='%s', status code='%s' level='%s' "
                    "ex.code=%ui ex.redirect='%s'", callMethod,
                    "NetConnection.Connect.Rejected", "error", 302, to_url.data);
@@ -661,7 +662,7 @@ ngx_rtmp_create_redirect_status(ngx_rtmp_session_t *s, char *callMethod, char *d
           sizeof(out_inf) },
     };
 
-    ngx_log_error(NGX_LOG_INFO, s->connection->log, 0,
+    ngx_log_debug(NGX_LOG_DEBUG, s->connection->log, 0,
                    "create redirect status: set structure data");
 
     out_elts[0].data = callMethod;
@@ -707,7 +708,7 @@ ngx_rtmp_create_close_method(ngx_rtmp_session_t *s, char *methodName)
           &dtrans, 0 },
     };
 
-    ngx_log_error(NGX_LOG_INFO, s->connection->log, 0,
+    ngx_log_debug(NGX_LOG_DEBUG, s->connection->log, 0,
                    "create close method: set structure data");
 
     out_elts[0].data = methodName;
@@ -773,7 +774,7 @@ ngx_rtmp_create_fcpublish(ngx_rtmp_session_t *s, u_char *desc)
           sizeof(out_inf) },
     };
 
-    ngx_log_error(NGX_LOG_DEBUG, s->connection->log, 0,
+    ngx_log_debug(NGX_LOG_DEBUG, s->connection->log, 0,
                    "create: fcpublish - set structure data");
 
     out_inf[2].data = desc;
@@ -840,7 +841,7 @@ ngx_rtmp_create_fcunpublish(ngx_rtmp_session_t *s, u_char *desc)
           sizeof(out_inf) },
     };
 
-    ngx_log_error(NGX_LOG_DEBUG, s->connection->log, 0,
+    ngx_log_debug(NGX_LOG_DEBUG, s->connection->log, 0,
                    "create: fcunpublish - set structure data");
 
     out_inf[2].data = desc;
@@ -916,7 +917,7 @@ ngx_rtmp_create_fi(ngx_rtmp_session_t *s)
     errfl = ngx_gettimeofday(&tv);
 
     if (errfl) {
-            ngx_log_error(NGX_LOG_DEBUG, s->connection->log, 0,
+            ngx_log_debug(NGX_LOG_DEBUG, s->connection->log, 0,
                    "create: fi - can't get time!");
             return NULL;
     }
