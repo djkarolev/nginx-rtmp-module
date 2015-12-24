@@ -3,8 +3,6 @@
  * Copyright (C) Roman Arutyunyan
  */
 
-#include <sys/time.h>
-
 #include <ngx_config.h>
 #include <ngx_core.h>
 #include "ngx_rtmp.h"
@@ -876,10 +874,9 @@ ngx_rtmp_create_fi(ngx_rtmp_session_t *s)
 
     struct tm                       tm;
     struct timeval                  tv;
-    struct timezone                 tz;
     int                             errfl;
 
-    static u_char                   buf_time[NGX_TIME_T_LEN + 1];
+    static u_char                   buf_time[NGX_TIME_T_LEN*2 + 1];
     static u_char                   buf_date[NGX_TIME_T_LEN + 1];
 
 
@@ -916,7 +913,7 @@ ngx_rtmp_create_fi(ngx_rtmp_session_t *s)
 
     trans = 0;
 
-    errfl = gettimeofday(&tv, &tz);
+    errfl = ngx_gettimeofday(&tv);
 
     if (errfl) {
             ngx_log_error(NGX_LOG_DEBUG, s->connection->log, 0,
@@ -929,7 +926,7 @@ ngx_rtmp_create_fi(ngx_rtmp_session_t *s)
     ngx_memzero(buf_time, sizeof(buf_time));
     ngx_memzero(buf_date, sizeof(buf_date));
 
-    errfl = sprintf((char *)buf_time, "%02d:%02d:%02d.%d", tm.tm_hour, tm.tm_min, tm.tm_sec, (int)tv.tv_usec);
+    errfl = sprintf((char *)buf_time, "%02d:%02d:%02d.%06d", tm.tm_hour, tm.tm_min, tm.tm_sec, (int)tv.tv_usec);
     // Strange order, but FMLE send like this
     errfl = sprintf((char *)buf_date, "%02d-%02d-%04d", tm.tm_mday, tm.tm_mon + 1, tm.tm_year + 1900);
 
