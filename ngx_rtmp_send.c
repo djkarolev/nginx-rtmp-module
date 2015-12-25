@@ -3,8 +3,6 @@
  * Copyright (C) Roman Arutyunyan
  */
 
-#include <sys/time.h>
-
 #include <ngx_config.h>
 #include <ngx_core.h>
 #include "ngx_rtmp.h"
@@ -605,9 +603,10 @@ ngx_rtmp_create_redirect_status(ngx_rtmp_session_t *s, char *callMethod, char *d
     static double                   dtrans;
     static double                   dcode;
 
-    ngx_log_error(NGX_LOG_INFO, s->connection->log, 0,
+    ngx_log_debug0(NGX_LOG_DEBUG, s->connection->log, 0,
                    "create redirect status: got data");
-    ngx_log_error(NGX_LOG_INFO, s->connection->log, 0,
+
+    ngx_log_debug5(NGX_LOG_DEBUG, s->connection->log, 0,
                    "create redirect status: method='%s', status code='%s' level='%s' "
                    "ex.code=%ui ex.redirect='%s'", callMethod,
                    "NetConnection.Connect.Rejected", "error", 302, to_url.data);
@@ -663,7 +662,7 @@ ngx_rtmp_create_redirect_status(ngx_rtmp_session_t *s, char *callMethod, char *d
           sizeof(out_inf) },
     };
 
-    ngx_log_error(NGX_LOG_INFO, s->connection->log, 0,
+    ngx_log_debug0(NGX_LOG_DEBUG, s->connection->log, 0,
                    "create redirect status: set structure data");
 
     out_elts[0].data = callMethod;
@@ -709,7 +708,7 @@ ngx_rtmp_create_close_method(ngx_rtmp_session_t *s, char *methodName)
           &dtrans, 0 },
     };
 
-    ngx_log_error(NGX_LOG_INFO, s->connection->log, 0,
+    ngx_log_debug0(NGX_LOG_DEBUG, s->connection->log, 0,
                    "create close method: set structure data");
 
     out_elts[0].data = methodName;
@@ -775,7 +774,7 @@ ngx_rtmp_create_fcpublish(ngx_rtmp_session_t *s, u_char *desc)
           sizeof(out_inf) },
     };
 
-    ngx_log_error(NGX_LOG_DEBUG, s->connection->log, 0,
+    ngx_log_debug0(NGX_LOG_DEBUG, s->connection->log, 0,
                    "create: fcpublish - set structure data");
 
     out_inf[2].data = desc;
@@ -842,7 +841,7 @@ ngx_rtmp_create_fcunpublish(ngx_rtmp_session_t *s, u_char *desc)
           sizeof(out_inf) },
     };
 
-    ngx_log_error(NGX_LOG_DEBUG, s->connection->log, 0,
+    ngx_log_debug0(NGX_LOG_DEBUG, s->connection->log, 0,
                    "create: fcunpublish - set structure data");
 
     out_inf[2].data = desc;
@@ -876,10 +875,9 @@ ngx_rtmp_create_fi(ngx_rtmp_session_t *s)
 
     struct tm                       tm;
     struct timeval                  tv;
-    struct timezone                 tz;
     int                             errfl;
 
-    static u_char                   buf_time[NGX_TIME_T_LEN + 1];
+    static u_char                   buf_time[NGX_TIME_T_LEN*2 + 1];
     static u_char                   buf_date[NGX_TIME_T_LEN + 1];
 
 
@@ -916,20 +914,14 @@ ngx_rtmp_create_fi(ngx_rtmp_session_t *s)
 
     trans = 0;
 
-    errfl = gettimeofday(&tv, &tz);
-
-    if (errfl) {
-            ngx_log_error(NGX_LOG_DEBUG, s->connection->log, 0,
-                   "create: fi - can't get time!");
-            return NULL;
-    }
+    ngx_gettimeofday(&tv);
 
     ngx_libc_localtime((time_t)tv.tv_sec, &tm);
 
     ngx_memzero(buf_time, sizeof(buf_time));
     ngx_memzero(buf_date, sizeof(buf_date));
 
-    errfl = sprintf((char *)buf_time, "%02d:%02d:%02d.%d", tm.tm_hour, tm.tm_min, tm.tm_sec, (int)tv.tv_usec);
+    errfl = sprintf((char *)buf_time, "%02d:%02d:%02d.%06d", tm.tm_hour, tm.tm_min, tm.tm_sec, (int)tv.tv_usec);
     // Strange order, but FMLE send like this
     errfl = sprintf((char *)buf_date, "%02d-%02d-%04d", tm.tm_mday, tm.tm_mon + 1, tm.tm_year + 1900);
 
