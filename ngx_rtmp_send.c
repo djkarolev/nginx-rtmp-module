@@ -875,7 +875,6 @@ ngx_rtmp_create_fi(ngx_rtmp_session_t *s)
 
     struct tm                       tm;
     struct timeval                  tv;
-    int                             errfl;
 
     static u_char                   buf_time[NGX_TIME_T_LEN*2 + 1];
     static u_char                   buf_date[NGX_TIME_T_LEN + 1];
@@ -921,9 +920,9 @@ ngx_rtmp_create_fi(ngx_rtmp_session_t *s)
     ngx_memzero(buf_time, sizeof(buf_time));
     ngx_memzero(buf_date, sizeof(buf_date));
 
-    errfl = sprintf((char *)buf_time, "%02d:%02d:%02d.%06d", tm.tm_hour, tm.tm_min, tm.tm_sec, (int)tv.tv_usec);
+    ngx_sprintf(buf_time, "%02d:%02d:%02d.%06d", tm.tm_hour, tm.tm_min, tm.tm_sec, (int)tv.tv_usec);
     // Strange order, but FMLE send like this
-    errfl = sprintf((char *)buf_date, "%02d-%02d-%04d", tm.tm_mday, tm.tm_mon + 1, tm.tm_year + 1900);
+    ngx_sprintf(buf_date, "%02d-%02d-%04d", tm.tm_mday, tm.tm_mon + 1, tm.tm_year + 1900);
 
     out_inf[0].data = buf_time;
     out_inf[1].data = buf_date;
