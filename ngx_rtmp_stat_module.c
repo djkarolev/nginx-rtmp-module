@@ -349,8 +349,12 @@ ngx_rtmp_stat_client(ngx_http_request_t *r, ngx_chain_t ***lll,
     */
     NGX_RTMP_STAT_L("<port>");
     sa = (struct sockaddr_in *) s->connection->sockaddr;
-    NGX_RTMP_STAT(buf, ngx_snprintf(buf, sizeof(buf), "%ui",
+    if (sa) {
+        NGX_RTMP_STAT(buf, ngx_snprintf(buf, sizeof(buf), "%ui",
                   (ngx_uint_t) ntohs(sa->sin_port)) - buf);
+    } else {
+        NGX_RTMP_STAT(buf, ngx_snprintf(buf, sizeof(buf), "%ui", 0) - buf);
+    }
     NGX_RTMP_STAT_L("</port>");
 
 
