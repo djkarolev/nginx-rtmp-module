@@ -1,14 +1,29 @@
 # NGINX-based Media Streaming Server
-## nginx-rtmp-module
 
+## nginx-rtmp-module
 
 ### Project blog
 
   http://nginx-rtmp.blogspot.com
 
-### Wiki manual
+### Documentation
 
-  https://github.com/arut/nginx-rtmp-module/wiki/Directives
+* [Home](doc/README.md)
+* [Control module](doc/control_modul.md)
+* [Debug log](doc/debug_log.md)
+* [Directives](doc/directives.md)
+* [Examples](doc/examples.md)
+* [Exec wrapper in bash](doc/exec_wrapper_in_bash.md)
+* [FAQ](doc/faq.md)
+* [Getting number of subscribers](doc/getting_number_of_subscribers.md)
+* [Getting started with nginx rtmp](doc/getting_started.md)
+* [Installing in Gentoo](doc/installing_in_gentoo.md)
+* [Installing on Ubuntu using PPAs](doc/installing_ubuntu_using_ppas.md)
+* [Tutorial](doc/tutorial.md)
+
+*Source: https://github.com/arut/nginx-rtmp-module/wiki*
+
+* [Latest updates](doc/README.md#updates)
 
 ### Google group
 
