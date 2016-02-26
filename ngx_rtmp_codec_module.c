@@ -887,9 +887,9 @@ ngx_rtmp_codec_meta_data(ngx_rtmp_session_t *s, ngx_rtmp_header_t *h,
     if (v.height != -1) ctx->height = (ngx_uint_t) v.height;
     if (v.duration != -1) ctx->duration = (double) v.duration;
     if (v.frame_rate != -1) ctx->frame_rate = (double) v.frame_rate;
-    if (v.video_data_rate != -1) ctx->video_data_rate = (ngx_uint_t) v.video_data_rate;
+    if (v.video_data_rate != -1) ctx->video_data_rate = v.video_data_rate;
     if (v.video_codec_id_n != -1) ctx->video_codec_id = (ngx_uint_t) v.video_codec_id_n;
-    if (v.audio_data_rate != -1) ctx->audio_data_rate = (ngx_uint_t) v.audio_data_rate;
+    if (v.audio_data_rate != -1) ctx->audio_data_rate = v.audio_data_rate;
     if (v.audio_codec_id_n != -1) ctx->audio_codec_id = (v.audio_codec_id_n == 0
             ? NGX_RTMP_AUDIO_UNCOMPRESSED : (ngx_uint_t) v.audio_codec_id_n);
     if (v.profile[0] != '\0') ngx_memcpy(ctx->profile, v.profile, sizeof(v.profile));
