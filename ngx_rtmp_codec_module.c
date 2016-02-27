@@ -845,6 +845,11 @@ ngx_rtmp_codec_meta_data(ngx_rtmp_session_t *s, ngx_rtmp_header_t *h,
 
     static ngx_rtmp_amf_elt_t       in_elts[] = {
 
+       /* That string is passed by FFmpeg and possibly others (librtmp). It's skipped after at #880 */
+       { NGX_RTMP_AMF_STRING,
+          ngx_null_string,
+          NULL, 0 },
+
         { NGX_RTMP_AMF_OBJECT,
           ngx_null_string,
           in_inf, sizeof(in_inf) },
@@ -872,7 +877,7 @@ ngx_rtmp_codec_meta_data(ngx_rtmp_session_t *s, ngx_rtmp_header_t *h,
     v.profile[0] = '\0';
     v.level[0] = '\0';
 
-    /* FFmpeg sends a string in front of actal metadata; ignore it */
+    /* FFmpeg sends a string in front of actual metadata; ignore it */
     skip = !(in->buf->last > in->buf->pos
             && *in->buf->pos == NGX_RTMP_AMF_STRING);
     if (ngx_rtmp_receive_amf(s, in, in_elts + skip,
