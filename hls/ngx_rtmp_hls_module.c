@@ -2305,7 +2305,7 @@ ngx_rtmp_hls_cleanup_dir(ngx_str_t *ppath, ngx_msec_t playlen)
                                     name.data[name.len - 2] == 'u' &&
                                     name.data[name.len - 1] == '8')
         {
-            max_age = playlen / 1000;
+            max_age = playlen / 500;
 
         } else if (name.len >= 4 && name.data[name.len - 4] == '.' &&
                                     name.data[name.len - 3] == 'k' &&
@@ -2348,7 +2348,8 @@ ngx_rtmp_hls_cleanup(void *data)
 
     ngx_rtmp_hls_cleanup_dir(&cleanup->path, cleanup->playlen);
 
-    return cleanup->playlen / 500;
+    // Next callback in half of playlist length time
+    return cleanup->playlen / 2000;
 }
 
 
@@ -2454,7 +2455,7 @@ ngx_rtmp_hls_merge_app_conf(ngx_conf_t *cf, void *parent, void *child)
     ngx_conf_merge_value(conf->hls, prev->hls, 0);
     ngx_conf_merge_msec_value(conf->fraglen, prev->fraglen, 5000);
     ngx_conf_merge_msec_value(conf->max_fraglen, prev->max_fraglen,
-                              conf->fraglen * 10);
+                              conf->fraglen * 2);
     ngx_conf_merge_msec_value(conf->muxdelay, prev->muxdelay, 700);
     ngx_conf_merge_msec_value(conf->sync, prev->sync, 2);
     ngx_conf_merge_msec_value(conf->playlen, prev->playlen, 30000);

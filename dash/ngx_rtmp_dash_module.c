@@ -1049,6 +1049,10 @@ ngx_rtmp_dash_update_fragments(ngx_rtmp_session_t *s, ngx_int_t boundary,
     ctx = ngx_rtmp_get_module_ctx(s, ngx_rtmp_dash_module);
     f = ngx_rtmp_dash_get_frag(s, ctx->nfrags);
 
+    ngx_log_debug4(NGX_LOG_DEBUG_RTMP, s->connection->log, 0,
+                   "dash: update_fragments: timestamp=%ui, f-timestamp=%ui, boundary=%i, dacf-fraglen=%ui",
+                   timestamp, f->timestamp, boundary, dacf->fraglen);
+
     d = (int32_t) (timestamp - f->timestamp);
 
     if (d >= 0) {
@@ -1063,25 +1067,43 @@ ngx_rtmp_dash_update_fragments(ngx_rtmp_session_t *s, ngx_int_t boundary,
         hit = (-d > 1000);
     }
 
+    ngx_log_debug3(NGX_LOG_DEBUG_RTMP, s->connection->log, 0,
+                   "dash: update_fragments: d=%i, f-duration=%ui, hit=%i",
+                   d, f->duration, hit);
+
     if (ctx->has_video && !hit) {
         boundary = 0;
+        ngx_log_debug0(NGX_LOG_DEBUG_RTMP, s->connection->log, 0,
+                   "dash: update_fragments: boundary=0 cos has_video && !hit");
     }
 
     if (!ctx->has_video && ctx->has_audio) {
         boundary = hit;
+        ngx_log_debug0(NGX_LOG_DEBUG_RTMP, s->connection->log, 0,
+                   "dash: update_fragments: boundary=hit cos !has_video && has_audio");
     }
 
     if (ctx->audio.mdat_size >= NGX_RTMP_DASH_MAX_MDAT) {
         boundary = 1;
+        ngx_log_debug0(NGX_LOG_DEBUG_RTMP, s->connection->log, 0,
+                   "dash: update_fragments: boundary=1 cos audio max mdat");
     }
 
     if (ctx->video.mdat_size >= NGX_RTMP_DASH_MAX_MDAT) {
         boundary = 1;
+        ngx_log_debug0(NGX_LOG_DEBUG_RTMP, s->connection->log, 0,
+                   "dash: update_fragments: boundary=1 cos video max mdat");
     }
 
     if (!ctx->opened) {
         boundary = 1;
+        ngx_log_debug0(NGX_LOG_DEBUG_RTMP, s->connection->log, 0,
+                   "dash: update_fragments: boundary=1 cos !opened");
     }
+
+    ngx_log_debug1(NGX_LOG_DEBUG_RTMP, s->connection->log, 0,
+                   "dash: update_fragments: boundary=%i",
+                   boundary);
 
     if (boundary) {
         ngx_rtmp_dash_close_fragments(s);
@@ -1432,7 +1454,7 @@ ngx_rtmp_dash_cleanup_dir(ngx_str_t *ppath, ngx_msec_t playlen)
                                     name.data[name.len - 2] == 'a' &&
                                     name.data[name.len - 1] == 'w')
         {
-            max_age = playlen / 1000;
+            max_age = playlen / 500;
 
         } else {
             ngx_log_debug1(NGX_LOG_DEBUG_RTMP, ngx_cycle->log, 0,
@@ -1468,7 +1490,8 @@ ngx_rtmp_dash_cleanup(void *data)
 
     ngx_rtmp_dash_cleanup_dir(&cleanup->path, cleanup->playlen);
 
-    return cleanup->playlen / 500;
+    // Next callback in half of playlist length time
+    return cleanup->playlen / 2000;
 }
 
 static ngx_int_t
