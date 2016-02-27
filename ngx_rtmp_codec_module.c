@@ -606,7 +606,7 @@ ngx_rtmp_codec_reconstruct_meta(ngx_rtmp_session_t *s)
 
         { NGX_RTMP_AMF_STRING,
           ngx_string("Server"),
-          "NGINX RTMP (github.com/arut/nginx-rtmp-module)", 0 },
+          "NGINX RTMP (github.com/sergey-dryabzhinsky/nginx-rtmp-module)", 0 },
 
         { NGX_RTMP_AMF_NUMBER,
           ngx_string("width"),
@@ -662,6 +662,10 @@ ngx_rtmp_codec_reconstruct_meta(ngx_rtmp_session_t *s)
     };
 
     static ngx_rtmp_amf_elt_t       out_elts[] = {
+
+        { NGX_RTMP_AMF_STRING,
+          ngx_null_string,
+          "onMetaData", 0 },
 
         { NGX_RTMP_AMF_OBJECT,
           ngx_null_string,
@@ -840,10 +844,6 @@ ngx_rtmp_codec_meta_data(ngx_rtmp_session_t *s, ngx_rtmp_header_t *h,
     };
 
     static ngx_rtmp_amf_elt_t       in_elts[] = {
-
-        { NGX_RTMP_AMF_STRING,
-          ngx_null_string,
-          NULL, 0 },
 
         { NGX_RTMP_AMF_OBJECT,
           ngx_null_string,
