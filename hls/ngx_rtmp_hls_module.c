@@ -1049,7 +1049,7 @@ ngx_rtmp_hls_open_fragment(ngx_rtmp_session_t *s, uint64_t ts,
     codec_ctx = ngx_rtmp_get_module_ctx(s, ngx_rtmp_codec_module);
 
     if (ngx_rtmp_mpegts_open_file(&ctx->file, ctx->stream.data,
-                                  s->connection->log, &codec_ctx->audio_codec_id, mpegts_cc)
+                                  s->connection->log, codec_ctx, mpegts_cc)
         != NGX_OK)
     {
         return NGX_ERROR;
