@@ -109,7 +109,8 @@ typedef struct {
     ngx_path_t                         *slot;
     ngx_msec_t                          max_audio_delay;
     size_t                              audio_buffer_size;
-    ngx_flag_t                          cleanup;
+    ngx_cleanup_t                       cleanup;
+    ngx_dvr_t                           dvr;
     ngx_array_t                        *variant;
     ngx_str_t                           base_url;
     ngx_int_t                           granularity;
@@ -260,6 +261,13 @@ static ngx_command_t ngx_rtmp_hls_commands[] = {
       NGX_RTMP_APP_CONF_OFFSET,
       offsetof(ngx_rtmp_hls_app_conf_t, type),
       &ngx_rtmp_hls_type_slots },
+
+    { ngx_string("hls_dvr"),
+      NGX_RTMP_MAIN_CONF|NGX_RTMP_SRV_CONF|NGX_RTMP_APP_CONF|NGX_CONF_TAKE1,
+      ngx_conf_set_flag_slot,
+      NGX_RTMP_APP_CONF_OFFSET,
+      offsetof(ngx_rtmp_hls_app_conf_t, dvr),
+      NULL },      
 
     { ngx_string("hls_max_audio_delay"),
       NGX_RTMP_MAIN_CONF|NGX_RTMP_SRV_CONF|NGX_RTMP_APP_CONF|NGX_CONF_TAKE1,
@@ -562,6 +570,10 @@ ngx_rtmp_hls_write_playlist(ngx_rtmp_session_t *s)
 
     if (hacf->type == NGX_RTMP_HLS_TYPE_EVENT) {
         p = ngx_slprintf(p, end, "#EXT-X-PLAYLIST-TYPE:EVENT\n");
+    }
+
+    if (hacf->dvr) {
+        p = ngx_slprintf(p, end, "#EXT-X-ALLOW-CACHE:1\n");
     }
 
     n = ngx_write_fd(fd, buffer, p - buffer);
@@ -2437,6 +2449,7 @@ ngx_rtmp_hls_create_app_conf(ngx_conf_t *cf)
     conf->datetime = NGX_CONF_UNSET_UINT;
     conf->slicing = NGX_CONF_UNSET_UINT;
     conf->type = NGX_CONF_UNSET_UINT;
+    conf->dvr = NGX_CONF_UNSET;
     conf->max_audio_delay = NGX_CONF_UNSET_MSEC;
     conf->audio_buffer_size = NGX_CONF_UNSET_SIZE;
     conf->cleanup = NGX_CONF_UNSET;
@@ -2463,6 +2476,7 @@ ngx_rtmp_hls_merge_app_conf(ngx_conf_t *cf, void *parent, void *child)
     ngx_conf_merge_msec_value(conf->sync, prev->sync, 2);
     ngx_conf_merge_msec_value(conf->playlen, prev->playlen, 30000);
     ngx_conf_merge_value(conf->continuous, prev->continuous, 1);
+    ngx_conf_merge_value(conf->dvr, prev->dvr, 0);
     ngx_conf_merge_value(conf->nested, prev->nested, 0);
     ngx_conf_merge_uint_value(conf->naming, prev->naming,
                               NGX_RTMP_HLS_NAMING_SEQUENTIAL);
