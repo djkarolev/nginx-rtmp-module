@@ -109,8 +109,7 @@ typedef struct {
     ngx_path_t                         *slot;
     ngx_msec_t                          max_audio_delay;
     size_t                              audio_buffer_size;
-    ngx_cleanup_t                       cleanup;
-    ngx_dvr_t                           dvr;
+    ngx_flag_t                          cleanup;
     ngx_array_t                        *variant;
     ngx_str_t                           base_url;
     ngx_int_t                           granularity;
