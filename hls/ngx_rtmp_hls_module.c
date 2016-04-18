@@ -110,7 +110,7 @@ typedef struct {
     ngx_msec_t                          max_audio_delay;
     size_t                              audio_buffer_size;
     ngx_flag_t                          cleanup;
-    ngx_flag_t                          dvr;
+    ngx_uint_t                          allow_client_cache;
     ngx_array_t                        *variant;
     ngx_str_t                           base_url;
     ngx_int_t                           granularity;
@@ -137,6 +137,9 @@ typedef struct {
 
 #define NGX_RTMP_HLS_TYPE_LIVE          1
 #define NGX_RTMP_HLS_TYPE_EVENT         2
+
+#define NGX_RTMP_HLS_CACHE_DISABLED     1
+#define NGX_RTMP_HLS_CACHE_ENABLED      2
 
 
 static ngx_conf_enum_t                  ngx_rtmp_hls_naming_slots[] = {
@@ -168,6 +171,11 @@ static ngx_conf_enum_t                  ngx_rtmp_hls_type_slots[] = {
     { ngx_null_string,                  0 }
 };
 
+static ngx_conf_enum_t                  ngx_rtmp_hls_cache[] = {
+    { ngx_string("enabled"),            NGX_RTMP_HLS_CACHE_ENABLED  },
+    { ngx_string("disabled"),           NGX_RTMP_HLS_CACHE_DISABLED },
+    { ngx_null_string,                  0 }
+};
 
 static ngx_command_t ngx_rtmp_hls_commands[] = {
 
@@ -283,11 +291,11 @@ static ngx_command_t ngx_rtmp_hls_commands[] = {
       offsetof(ngx_rtmp_hls_app_conf_t, cleanup),
       NULL },
 
-    { ngx_string("hls_dvr"),
+    { ngx_string("hls_allow_client_cache"),
       NGX_RTMP_MAIN_CONF|NGX_RTMP_SRV_CONF|NGX_RTMP_APP_CONF|NGX_CONF_TAKE1,
-      ngx_conf_set_flag_slot,
+      ngx_conf_set_enum_slot,
       NGX_RTMP_APP_CONF_OFFSET,
-      offsetof(ngx_rtmp_hls_app_conf_t, dvr),
+      offsetof(ngx_rtmp_hls_app_conf_t, allow_client_cache),
       NULL },       
 
     { ngx_string("hls_variant"),
@@ -572,8 +580,10 @@ ngx_rtmp_hls_write_playlist(ngx_rtmp_session_t *s)
         p = ngx_slprintf(p, end, "#EXT-X-PLAYLIST-TYPE:EVENT\n");
     }
 
-    if (hacf->dvr) {
+    if (hacf->allow_client_cache && hacf->allow_client_cache == NGX_RTMP_HLS_CACHE_ENABLED) {
         p = ngx_slprintf(p, end, "#EXT-X-ALLOW-CACHE:1\n");
+    } else if (hacf->allow_client_cache && hacf->allow_client_cache == NGX_RTMP_HLS_CACHE_DISABLED) {
+        p = ngx_slprintf(p, end, "#EXT-X-ALLOW-CACHE:0\n");
     }
 
     n = ngx_write_fd(fd, buffer, p - buffer);
@@ -2452,7 +2462,7 @@ ngx_rtmp_hls_create_app_conf(ngx_conf_t *cf)
     conf->max_audio_delay = NGX_CONF_UNSET_MSEC;
     conf->audio_buffer_size = NGX_CONF_UNSET_SIZE;
     conf->cleanup = NGX_CONF_UNSET;
-    conf->dvr = NGX_CONF_UNSET;
+    conf->allow_client_cache = NGX_CONF_UNSET_UINT;
     conf->granularity = NGX_CONF_UNSET;
     conf->keys = NGX_CONF_UNSET;
     conf->frags_per_key = NGX_CONF_UNSET_UINT;
@@ -2490,7 +2500,7 @@ ngx_rtmp_hls_merge_app_conf(ngx_conf_t *cf, void *parent, void *child)
     ngx_conf_merge_size_value(conf->audio_buffer_size, prev->audio_buffer_size,
                               NGX_RTMP_HLS_BUFSIZE);
     ngx_conf_merge_value(conf->cleanup, prev->cleanup, 1);
-    ngx_conf_merge_value(conf->dvr, prev->dvr, 0);
+    ngx_conf_merge_value(conf->allow_client_cache, prev->allow_client_cache, 0);
     ngx_conf_merge_str_value(conf->base_url, prev->base_url, "");
     ngx_conf_merge_value(conf->granularity, prev->granularity, 0);
     ngx_conf_merge_value(conf->keys, prev->keys, 0);
