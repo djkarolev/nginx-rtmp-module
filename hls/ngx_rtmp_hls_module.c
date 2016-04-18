@@ -580,9 +580,9 @@ ngx_rtmp_hls_write_playlist(ngx_rtmp_session_t *s)
         p = ngx_slprintf(p, end, "#EXT-X-PLAYLIST-TYPE:EVENT\n");
     }
 
-    if (hacf->allow_client_cache && hacf->allow_client_cache == NGX_RTMP_HLS_CACHE_ENABLED) {
+    if (hacf->allow_client_cache == NGX_RTMP_HLS_CACHE_ENABLED) {
         p = ngx_slprintf(p, end, "#EXT-X-ALLOW-CACHE:1\n");
-    } else if (hacf->allow_client_cache && hacf->allow_client_cache == NGX_RTMP_HLS_CACHE_DISABLED) {
+    } else if (hacf->allow_client_cache == NGX_RTMP_HLS_CACHE_DISABLED) {
         p = ngx_slprintf(p, end, "#EXT-X-ALLOW-CACHE:0\n");
     }
 
@@ -2500,7 +2500,6 @@ ngx_rtmp_hls_merge_app_conf(ngx_conf_t *cf, void *parent, void *child)
     ngx_conf_merge_size_value(conf->audio_buffer_size, prev->audio_buffer_size,
                               NGX_RTMP_HLS_BUFSIZE);
     ngx_conf_merge_value(conf->cleanup, prev->cleanup, 1);
-    ngx_conf_merge_value(conf->allow_client_cache, prev->allow_client_cache, 0);
     ngx_conf_merge_str_value(conf->base_url, prev->base_url, "");
     ngx_conf_merge_value(conf->granularity, prev->granularity, 0);
     ngx_conf_merge_value(conf->keys, prev->keys, 0);
