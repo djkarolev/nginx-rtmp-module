@@ -98,6 +98,7 @@ Table of Contents
     * [hls_fragment_slicing](#hls_fragment_slicing)
     * [hls_variant](#hls_variant)
     * [hls_type](#hls_type)
+    * [hls_allow_client_cache](#hls_allow_client_cache)
     * [hls_keys](#hls_keys)
     * [hls_key_path](#hls_key_path)
     * [hls_key_url](#hls_key_url)
@@ -1413,6 +1414,19 @@ from the start of playlist. When in `event` mode make sure playlist length
 is enough for the whole event. Default is `live`;
 ```sh
 hls_type event;
+```
+
+#### hls_allow_client_cache
+Syntax: `hls_allow_client_cache enabled|disabled`  
+Context: rtmp, server, application  
+
+Enables (or disables) client cache with `#EXT-X-ALLOW-CACHE` playlist
+directive.  Setting value to enabled allows supported clients to
+cache segments in a live DVR manner.  Setting value to disabled explicitly 
+tells supported clients to never cache segments.
+Unset by default (playlist directive will be absent).
+```sh
+hls_allow_client_cache enabled;
 ```
 
 #### hls_keys
