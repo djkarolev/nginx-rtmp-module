@@ -22,3 +22,5 @@
   * Notify
     * [on_playlist](directives.md#on_playlist)
     * [notify_send_redirect](directives.md#notify_send_redirect)
+  * Client Caching
+  	* [hls_allow_client_cache](directives.md#hls_allow_client_cache)
