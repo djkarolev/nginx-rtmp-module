@@ -425,6 +425,11 @@ ngx_rtmp_notify_connect_create(ngx_rtmp_session_t *s, void *arg,
     al->buf = b;
     al->next = NULL;
 
+    if (args_len) {
+        b->last = (u_char *) ngx_cpymem(b->last, v->args, args_len);
+        *b->last++ = '&';
+    }
+
     b->last = ngx_cpymem(b->last, (u_char*) "app=", sizeof("app=") - 1);
     b->last = (u_char*) ngx_escape_uri(b->last, v->app, app_len,
                                        NGX_ESCAPE_ARGS);
@@ -458,11 +463,6 @@ ngx_rtmp_notify_connect_create(ngx_rtmp_session_t *s, void *arg,
 
     b->last = ngx_cpymem(b->last, (u_char*) "&call=connect",
                          sizeof("&call=connect") - 1);
-
-    if (args_len) {
-        *b->last++ = '&';
-        b->last = (u_char *) ngx_cpymem(b->last, v->args, args_len);
-    }
 
     url = nscf->url[NGX_RTMP_NOTIFY_CONNECT];
 
@@ -508,6 +508,11 @@ ngx_rtmp_notify_disconnect_create(ngx_rtmp_session_t *s, void *arg,
     pl->buf = b;
     pl->next = NULL;
 
+    if (s->args.len) {
+        b->last = (u_char *) ngx_cpymem(b->last, s->args.data, s->args.len);
+        *b->last++ = '&';
+    }
+
     b->last = ngx_cpymem(b->last, (u_char*) "&call=disconnect",
                          sizeof("&call=disconnect") - 1);
 
@@ -520,11 +525,6 @@ ngx_rtmp_notify_disconnect_create(ngx_rtmp_session_t *s, void *arg,
 
     b->last = ngx_cpymem(b->last, (u_char*) "&bytes_out=", sizeof("&bytes_out=") -1);
     b->last = ngx_sprintf(b->last, "%ui", (ngx_uint_t) s->out_bytes);
-
-    if (s->args.len) {
-        *b->last++ = '&';
-        b->last = (u_char *) ngx_cpymem(b->last, s->args.data, s->args.len);
-    }
 
     url = nscf->url[NGX_RTMP_NOTIFY_DISCONNECT];
 
@@ -580,6 +580,11 @@ ngx_rtmp_notify_publish_create(ngx_rtmp_session_t *s, void *arg,
     pl->buf = b;
     pl->next = NULL;
 
+    if (args_len) {
+        b->last = (u_char *) ngx_cpymem(b->last, v->args, args_len);
+        *b->last++ = '&';
+    }
+
     b->last = ngx_cpymem(b->last, (u_char*) "&call=publish",
                          sizeof("&call=publish") - 1);
 
@@ -594,11 +599,6 @@ ngx_rtmp_notify_publish_create(ngx_rtmp_session_t *s, void *arg,
     b->last = ngx_cpymem(b->last, (u_char*) "&type=", sizeof("&type=") - 1);
     b->last = (u_char*) ngx_escape_uri(b->last, v->type, type_len,
                                        NGX_ESCAPE_ARGS);
-
-    if (args_len) {
-        *b->last++ = '&';
-        b->last = (u_char *) ngx_cpymem(b->last, v->args, args_len);
-    }
 
     return ngx_rtmp_notify_create_request(s, pool, NGX_RTMP_NOTIFY_PUBLISH, pl);
 }
@@ -635,6 +635,11 @@ ngx_rtmp_notify_play_create(ngx_rtmp_session_t *s, void *arg,
     pl->buf = b;
     pl->next = NULL;
 
+    if (args_len) {
+        b->last = (u_char *) ngx_cpymem(b->last, v->args, args_len);
+        *b->last++ = '&';
+    }
+
     b->last = ngx_cpymem(b->last, (u_char*) "&call=play",
                          sizeof("&call=play") - 1);
 
@@ -650,11 +655,6 @@ ngx_rtmp_notify_play_create(ngx_rtmp_session_t *s, void *arg,
                            "&start=%uD&duration=%uD&reset=%d",
                            (uint32_t) v->start, (uint32_t) v->duration,
                            v->reset & 1);
-
-    if (args_len) {
-        *b->last++ = '&';
-        b->last = (u_char *) ngx_cpymem(b->last, v->args, args_len);
-    }
 
     return ngx_rtmp_notify_create_request(s, pool, NGX_RTMP_NOTIFY_PLAY, pl);
 }
@@ -697,6 +697,11 @@ ngx_rtmp_notify_done_create(ngx_rtmp_session_t *s, void *arg,
     pl->buf = b;
     pl->next = NULL;
 
+    if (args_len) {
+        b->last = (u_char *) ngx_cpymem(b->last, ctx->args, args_len);
+        *b->last++ = '&';
+    }
+
     b->last = ngx_cpymem(b->last, (u_char*) "&call=", sizeof("&call=") - 1);
     b->last = ngx_cpymem(b->last, ds->cbname, cbname_len);
 
@@ -715,11 +720,6 @@ ngx_rtmp_notify_done_create(ngx_rtmp_session_t *s, void *arg,
 
     b->last = ngx_cpymem(b->last, (u_char*) "&bytes_out=", sizeof("&bytes_out=") -1);
     b->last = ngx_sprintf(b->last, "%ui", (ngx_uint_t) s->out_bytes);
-
-    if (args_len) {
-        *b->last++ = '&';
-        b->last = (u_char *) ngx_cpymem(b->last, ctx->args, args_len);
-    }
 
     return ngx_rtmp_notify_create_request(s, pool, ds->url_idx, pl);
 }
@@ -767,6 +767,11 @@ ngx_rtmp_notify_update_create(ngx_rtmp_session_t *s, void *arg,
     pl->buf = b;
     pl->next = NULL;
 
+    if (args_len) {
+        b->last = (u_char *) ngx_cpymem(b->last, ctx->args, args_len);
+        *b->last++ = '&';
+    }
+
     b->last = ngx_cpymem(b->last, (u_char*) "&call=update",
                          sizeof("&call=update") - 1);
     b->last = ngx_cpymem(b->last, sfx.data, sfx.len);
@@ -787,11 +792,6 @@ ngx_rtmp_notify_update_create(ngx_rtmp_session_t *s, void *arg,
         b->last = ngx_cpymem(b->last, (u_char*) "&name=", sizeof("&name=") - 1);
         b->last = (u_char*) ngx_escape_uri(b->last, ctx->name, name_len,
                                            NGX_ESCAPE_ARGS);
-    }
-
-    if (args_len) {
-        *b->last++ = '&';
-        b->last = (u_char *) ngx_cpymem(b->last, ctx->args, args_len);
     }
 
     return ngx_rtmp_notify_create_request(s, pool, NGX_RTMP_NOTIFY_UPDATE, pl);
@@ -836,6 +836,11 @@ ngx_rtmp_notify_record_done_create(ngx_rtmp_session_t *s, void *arg,
     pl->buf = b;
     pl->next = NULL;
 
+    if (args_len) {
+        b->last = (u_char *) ngx_cpymem(b->last, ctx->args, args_len);
+        *b->last++ = '&';
+    }
+
     b->last = ngx_cpymem(b->last, (u_char*) "&call=record_done",
                          sizeof("&call=record_done") - 1);
 
@@ -861,11 +866,6 @@ ngx_rtmp_notify_record_done_create(ngx_rtmp_session_t *s, void *arg,
 
     b->last = ngx_cpymem(b->last, (u_char*) "&bytes_out=", sizeof("&bytes_out=") -1);
     b->last = ngx_sprintf(b->last, "%ui", (ngx_uint_t) s->out_bytes);
-
-    if (args_len) {
-        *b->last++ = '&';
-        b->last = (u_char *) ngx_cpymem(b->last, ctx->args, args_len);
-    }
 
     return ngx_rtmp_notify_create_request(s, pool, NGX_RTMP_NOTIFY_RECORD_DONE,
                                           pl);
