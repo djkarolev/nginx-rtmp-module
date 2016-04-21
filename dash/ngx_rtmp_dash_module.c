@@ -20,6 +20,7 @@ static void * ngx_rtmp_dash_create_app_conf(ngx_conf_t *cf);
 static char * ngx_rtmp_dash_merge_app_conf(ngx_conf_t *cf,
        void *parent, void *child);
 static ngx_int_t ngx_rtmp_dash_write_init_segments(ngx_rtmp_session_t *s);
+static ngx_int_t ngx_rtmp_dash_ensure_directory(ngx_rtmp_session_t *s);
 
 
 #define NGX_RTMP_DASH_BUFSIZE           (1024*1024)
@@ -771,6 +772,10 @@ ngx_rtmp_dash_open_fragments(ngx_rtmp_session_t *s)
 
     if (ctx->opened) {
         return NGX_OK;
+    }
+
+    if (ngx_rtmp_dash_ensure_directory(s) != NGX_OK) {
+        return NGX_ERROR;
     }
 
     ngx_rtmp_dash_open_fragment(s, &ctx->video, ctx->id, 'v');
