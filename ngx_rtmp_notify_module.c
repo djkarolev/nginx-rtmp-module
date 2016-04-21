@@ -380,7 +380,7 @@ ngx_rtmp_notify_connect_create(ngx_rtmp_session_t *s, void *arg,
 
     ngx_rtmp_notify_srv_conf_t     *nscf;
     ngx_url_t                      *url;
-    ngx_chain_t                    *al, *bl, *pl;
+    ngx_chain_t                    *al, *bl;
     ngx_buf_t                      *b;
     ngx_str_t                      *addr_text;
     size_t                          app_len, args_len, flashver_len,
@@ -388,8 +388,8 @@ ngx_rtmp_notify_connect_create(ngx_rtmp_session_t *s, void *arg,
 
     nscf = ngx_rtmp_get_module_srv_conf(s, ngx_rtmp_notify_module);
 
-    pl = ngx_alloc_chain_link(pool);
-    if (pl == NULL) {
+    al = ngx_alloc_chain_link(pool);
+    if (al == NULL) {
         return NULL;
     }
 
@@ -397,10 +397,23 @@ ngx_rtmp_notify_connect_create(ngx_rtmp_session_t *s, void *arg,
      * so we have to construct the request from
      * connection struct */
 
+    app_len = ngx_strlen(v->app);
     args_len = ngx_strlen(v->args);
+    flashver_len = ngx_strlen(v->flashver);
+    swf_url_len = ngx_strlen(v->swf_url);
+    tc_url_len = ngx_strlen(v->tc_url);
+    page_url_len = ngx_strlen(v->page_url);
+
+    addr_text = &s->connection->addr_text;
 
     b = ngx_create_temp_buf(pool,
             sizeof("&call=connect") - 1 +
+            sizeof("&app=") - 1 + app_len * 3 +
+            sizeof("&flashver=") - 1 + flashver_len * 3 +
+            sizeof("&swfurl=") - 1 + swf_url_len * 3 +
+            sizeof("&tcurl=") - 1 + tc_url_len * 3 +
+            sizeof("&pageurl=") - 1 + page_url_len * 3 +
+            sizeof("&addr=") - 1 + addr_text->len * 3 +
             sizeof("&epoch=") - 1 + NGX_INT32_LEN +
             1 + args_len
         );
@@ -409,28 +422,49 @@ ngx_rtmp_notify_connect_create(ngx_rtmp_session_t *s, void *arg,
         return NULL;
     }
 
-    pl->buf = b;
-    pl->next = NULL;
+    al->buf = b;
+    al->next = NULL;
 
     if (args_len) {
-        *b->last++ = '&';
+//        *b->last++ = '&';
         b->last = (u_char *) ngx_cpymem(b->last, v->args, args_len);
     }
 
     b->last = ngx_cpymem(b->last, (u_char*) "&call=connect",
                          sizeof("&call=connect") - 1);
 
+    b->last = ngx_cpymem(b->last, (u_char*) "&app=", sizeof("&app=") - 1);
+    b->last = (u_char*) ngx_escape_uri(b->last, v->app, app_len,
+                                       NGX_ESCAPE_ARGS);
+
+    b->last = ngx_cpymem(b->last, (u_char*) "&flashver=",
+                         sizeof("&flashver=") - 1);
+    b->last = (u_char*) ngx_escape_uri(b->last, v->flashver, flashver_len,
+                                       NGX_ESCAPE_ARGS);
+
+    b->last = ngx_cpymem(b->last, (u_char*) "&swfurl=",
+                         sizeof("&swfurl=") - 1);
+    b->last = (u_char*) ngx_escape_uri(b->last, v->swf_url, swf_url_len,
+                                       NGX_ESCAPE_ARGS);
+
+    b->last = ngx_cpymem(b->last, (u_char*) "&tcurl=",
+                         sizeof("&tcurl=") - 1);
+    b->last = (u_char*) ngx_escape_uri(b->last, v->tc_url, tc_url_len,
+                                       NGX_ESCAPE_ARGS);
+
+    b->last = ngx_cpymem(b->last, (u_char*) "&pageurl=",
+                         sizeof("&pageurl=") - 1);
+    b->last = (u_char*) ngx_escape_uri(b->last, v->page_url, page_url_len,
+                                       NGX_ESCAPE_ARGS);
+
+    b->last = ngx_cpymem(b->last, (u_char*) "&addr=", sizeof("&addr=") -1);
+    b->last = (u_char*) ngx_escape_uri(b->last, addr_text->data,
+                                       addr_text->len, NGX_ESCAPE_ARGS);
+
     b->last = ngx_cpymem(b->last, (u_char*) "&epoch=", sizeof("&epoch=") -1);
     b->last = ngx_sprintf(b->last, "%uD", (uint32_t) s->epoch);
 
     url = nscf->url[NGX_RTMP_NOTIFY_CONNECT];
-
-    al = ngx_rtmp_netcall_http_format_session(s, pool);
-    if (al == NULL) {
-        return NULL;
-    }
-
-    al->next = pl;
 
     bl = NULL;
 
@@ -466,6 +500,7 @@ ngx_rtmp_notify_disconnect_create(ngx_rtmp_session_t *s, void *arg,
             sizeof("&bytes_in=") - 1 + NGX_INT32_LEN +
             sizeof("&bytes_out=") - 1 + NGX_INT32_LEN +
             1 + s->args.len);
+
     if (b == NULL) {
         return NULL;
     }
