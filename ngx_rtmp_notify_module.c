@@ -407,7 +407,7 @@ ngx_rtmp_notify_connect_create(ngx_rtmp_session_t *s, void *arg,
     addr_text = &s->connection->addr_text;
 
     b = ngx_create_temp_buf(pool,
-            sizeof("&call=connect") - 1 +
+            sizeof("call=connect") - 1 +
             sizeof("&app=") - 1 + app_len * 3 +
             sizeof("&flashver=") - 1 + flashver_len * 3 +
             sizeof("&swfurl=") - 1 + swf_url_len * 3 +
@@ -426,12 +426,12 @@ ngx_rtmp_notify_connect_create(ngx_rtmp_session_t *s, void *arg,
     al->next = NULL;
 
     if (args_len) {
-//        *b->last++ = '&';
         b->last = (u_char *) ngx_cpymem(b->last, v->args, args_len);
+        *b->last++ = '&';
     }
 
-    b->last = ngx_cpymem(b->last, (u_char*) "&call=connect",
-                         sizeof("&call=connect") - 1);
+    b->last = ngx_cpymem(b->last, (u_char*) "call=connect",
+                         sizeof("call=connect") - 1);
 
     b->last = ngx_cpymem(b->last, (u_char*) "&app=", sizeof("&app=") - 1);
     b->last = (u_char*) ngx_escape_uri(b->last, v->app, app_len,
