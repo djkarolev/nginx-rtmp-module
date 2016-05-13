@@ -1502,7 +1502,7 @@ ngx_rtmp_notify_update_handle(ngx_rtmp_session_t *s,
 
     rc = ngx_rtmp_notify_parse_http_retcode(s, in);
 
-    if ((!nacf->update_strict && rc == NGX_ERROR) ||
+    if ((!nacf->update_strict && (rc == NGX_ERROR || rc == NGX_DECLINED) ) ||
          (nacf->update_strict && rc != NGX_OK))
     {
         ngx_log_error(NGX_LOG_INFO, s->connection->log, 0,
