@@ -91,6 +91,12 @@ For building debug version of nginx add `--with-debug`
 
 [Read more about debug log](https://github.com/arut/nginx-rtmp-module/wiki/Debug-log)
 
+### Contributing and Branch Policy
+
+The "dev" branch is the one where all contributions will be merged before reaching "master".
+If you plan to propose a patch, please commit into the "dev" branch or its own feature branch.
+Direct commit to "master" are not permitted.
+
 ### Windows limitations
 
 Windows support is limited. These features are not supported
