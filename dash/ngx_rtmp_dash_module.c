@@ -236,7 +236,6 @@ ngx_rtmp_dash_write_playlist(ngx_rtmp_session_t *s)
     static u_char              buffer[NGX_RTMP_DASH_BUFSIZE];
     static u_char              avaliable_time[NGX_RTMP_DASH_GMT_LENGTH];
     static u_char              publish_time[NGX_RTMP_DASH_GMT_LENGTH];
-    static u_char              end_time[NGX_RTMP_DASH_GMT_LENGTH];
     static u_char              buffer_depth[sizeof("P00Y00M00DT00H00M00.00S")];
     static u_char              frame_rate[(NGX_INT_T_LEN * 2) + 2];
 
@@ -268,7 +267,6 @@ ngx_rtmp_dash_write_playlist(ngx_rtmp_session_t *s)
     "    type=\"dynamic\"\n"                                                   \
     "    xmlns=\"urn:mpeg:dash:schema:mpd:2011\"\n"                            \
     "    availabilityStartTime=\"%s\"\n"                                       \
-    "    availabilityEndTime=\"%s\"\n"                                         \
     "    publishTime=\"%s\"\n"                                                 \
     "    minimumUpdatePeriod=\"PT%uiS\"\n"                                     \
     "    minBufferTime=\"PT%uiS\"\n"                                           \
@@ -279,7 +277,7 @@ ngx_rtmp_dash_write_playlist(ngx_rtmp_session_t *s)
     "    xmlns:xsi=\"http://www.w3.org/2011/XMLSchema-instance\"\n"            \
     "    xsi:schemaLocation=\"urn:mpeg:DASH:schema:MPD:2011 DASH-MPD.xsd\">\n" \
     "  <UTCTiming schemeIdUri=\"urn:mpeg:dash:utc:http-head:2014\"\n"          \
-    "       value=\"http://vm2.dashif.org/dash/time.txt\" />"                  \
+    "       value=\"http://vm2.dashif.org/dash/time.txt\" />\n"                \
     "  <Period start=\"PT0S\" id=\"dash\">\n"
 
 
@@ -363,22 +361,15 @@ ngx_rtmp_dash_write_playlist(ngx_rtmp_session_t *s)
                  ngx_abs(ctx->start_time.gmtoff / 60),
                  ngx_abs(ctx->start_time.gmtoff % 60)) = 0;
 
-    if (publish_time[0] == '\0'){
+/* https://github.com/sergey-dryabzhinsky/nginx-rtmp-module/pull/121#issuecomment-221108556 */
+//    if (publish_time[0] == '\0'){
         *ngx_sprintf(publish_time, "%s", avaliable_time) = 0;
-    }
+//    }
 
     ngx_libc_localtime(ctx->start_time.sec +
                        (ngx_rtmp_dash_get_frag(s, ctx->nfrags - 1)->timestamp +
                         ngx_rtmp_dash_get_frag(s, ctx->nfrags - 1)->duration) /
                        1000, &tm);
-
-    *ngx_sprintf(end_time, "%4d-%02d-%02dT%02d:%02d:%02d%c%02d:%02d",
-                 tm.tm_year + 1900, tm.tm_mon + 1,
-                 tm.tm_mday, tm.tm_hour,
-                 tm.tm_min, tm.tm_sec,
-                 ctx->start_time.gmtoff < 0 ? '-' : '+',
-                 ngx_abs(ctx->start_time.gmtoff / 60),
-                 ngx_abs(ctx->start_time.gmtoff % 60)) = 0;
 
     depth_msec = (ngx_uint_t) (
                  ngx_rtmp_dash_get_frag(s, ctx->nfrags - 1)->timestamp +
@@ -397,7 +388,6 @@ ngx_rtmp_dash_write_playlist(ngx_rtmp_session_t *s)
 
     p = ngx_slprintf(buffer, last, NGX_RTMP_DASH_MANIFEST_HEADER,
                      avaliable_time,
-                     end_time,
                      publish_time,
                      (ngx_uint_t) (dacf->fraglen / 1000),
                      (ngx_uint_t) (dacf->fraglen / 1000),
