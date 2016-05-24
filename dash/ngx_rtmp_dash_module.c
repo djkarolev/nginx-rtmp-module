@@ -81,11 +81,29 @@ typedef struct {
 } ngx_rtmp_dash_cleanup_t;
 
 
+#define NGX_RTMP_DASH_CLOCK_COMPENSATION_OFF       1
+#define NGX_RTMP_DASH_CLOCK_COMPENSATION_NTP       2
+#define NGX_RTMP_DASH_CLOCK_COMPENSATION_HTTP_HEAD 3
+#define NGX_RTMP_DASH_CLOCK_COMPENSATION_HTTP_ISO  4
+
+static ngx_conf_enum_t                  ngx_rtmp_dash_clock_compensation_type_slots[] = {
+    { ngx_string("off"),                NGX_RTMP_DASH_CLOCK_COMPENSATION_OFF },
+    { ngx_string("ntp"),                NGX_RTMP_DASH_CLOCK_COMPENSATION_NTP },
+    { ngx_string("http_head"),          NGX_RTMP_DASH_CLOCK_COMPENSATION_HTTP_HEAD },
+    { ngx_string("http_iso"),           NGX_RTMP_DASH_CLOCK_COMPENSATION_HTTP_ISO },
+    { ngx_null_string,                  0 }
+};
+
 typedef struct {
     ngx_flag_t                          dash;
     ngx_msec_t                          fraglen;
     ngx_msec_t                          playlen;
     ngx_flag_t                          nested;
+    ngx_uint_t                          clock_compensation;     // Try to compensate clock drift
+                                                                //  between client and server (on client side)
+    ngx_str_t                           clock_helper_uri;       // Use uri to static file on HTTP server
+                                                                // - same machine as RTMP/DASH)
+                                                                // - or NTP server address
     ngx_str_t                           path;
     ngx_uint_t                          winfrags;
     ngx_flag_t                          cleanup;
@@ -135,6 +153,20 @@ static ngx_command_t ngx_rtmp_dash_commands[] = {
       ngx_conf_set_flag_slot,
       NGX_RTMP_APP_CONF_OFFSET,
       offsetof(ngx_rtmp_dash_app_conf_t, nested),
+      NULL },
+
+    { ngx_string("dash_clock_compensation"),
+      NGX_RTMP_MAIN_CONF|NGX_RTMP_SRV_CONF|NGX_RTMP_APP_CONF|NGX_CONF_TAKE1,
+      ngx_conf_set_enum_slot,
+      NGX_RTMP_APP_CONF_OFFSET,
+      offsetof(ngx_rtmp_dash_app_conf_t, clock_compensation),
+      &ngx_rtmp_dash_clock_compensation_type_slots },
+
+    { ngx_string("dash_clock_helper_uri"),
+      NGX_RTMP_MAIN_CONF|NGX_RTMP_SRV_CONF|NGX_RTMP_APP_CONF|NGX_CONF_TAKE1,
+      ngx_conf_set_str_slot,
+      NGX_RTMP_APP_CONF_OFFSET,
+      offsetof(ngx_rtmp_dash_app_conf_t, clock_helper_uri),
       NULL },
 
     ngx_null_command
@@ -275,9 +307,13 @@ ngx_rtmp_dash_write_playlist(ngx_rtmp_session_t *s)
     "    profiles=\"urn:hbbtv:dash:profile:isoff-live:2012,"                   \
                    "urn:mpeg:dash:profile:isoff-live:2011\"\n"                 \
     "    xmlns:xsi=\"http://www.w3.org/2011/XMLSchema-instance\"\n"            \
-    "    xsi:schemaLocation=\"urn:mpeg:DASH:schema:MPD:2011 DASH-MPD.xsd\">\n" \
-    "  <UTCTiming schemeIdUri=\"urn:mpeg:dash:utc:http-head:2014\"\n"          \
-    "       value=\"http://vm2.dashif.org/dash/time.txt\" />\n"                \
+    "    xsi:schemaLocation=\"urn:mpeg:DASH:schema:MPD:2011 DASH-MPD.xsd\">\n"
+
+#define NGX_RTMP_DASH_MANIFEST_CLOCK                                           \
+    "  <UTCTiming schemeIdUri=\"urn:mpeg:dash:utc:%s:2014\"\n"                 \
+    "       value=\"%V\" />\n"                                                 \
+
+#define NGX_RTMP_DASH_MANIFEST_PERIOD                                          \
     "  <Period start=\"PT0S\" id=\"dash\">\n"
 
 
@@ -351,9 +387,12 @@ ngx_rtmp_dash_write_playlist(ngx_rtmp_session_t *s)
     "  </Period>\n"                                                            \
     "</MPD>\n"
 
-    ngx_libc_localtime(ctx->start_time.sec, &tm);
-
-    *ngx_sprintf(avaliable_time, "%4d-%02d-%02dT%02d:%02d:%02d%c%02d:%02d",
+/* https://github.com/sergey-dryabzhinsky/nginx-rtmp-module/pull/121#issuecomment-221108556 */
+/**
+ * Always fresh publish time
+ */
+    ngx_libc_localtime(ngx_time(), &tm);
+    *ngx_sprintf(publish_time, "%4d-%02d-%02dT%02d:%02d:%02d%c%02d:%02d",
                  tm.tm_year + 1900, tm.tm_mon + 1,
                  tm.tm_mday, tm.tm_hour,
                  tm.tm_min, tm.tm_sec,
@@ -361,10 +400,22 @@ ngx_rtmp_dash_write_playlist(ngx_rtmp_session_t *s)
                  ngx_abs(ctx->start_time.gmtoff / 60),
                  ngx_abs(ctx->start_time.gmtoff % 60)) = 0;
 
-/* https://github.com/sergey-dryabzhinsky/nginx-rtmp-module/pull/121#issuecomment-221108556 */
-//    if (publish_time[0] == '\0'){
-        *ngx_sprintf(publish_time, "%s", avaliable_time) = 0;
-//    }
+/**
+ * Available time follows time of first segment in playlist
+ */
+    if (ctx->nfrags) {
+        f = ngx_rtmp_dash_get_frag(s, 0);
+        ngx_libc_localtime(ctx->start_time.sec + (f->timestamp + f->duration) / 1000, &tm);
+        *ngx_sprintf(avaliable_time, "%4d-%02d-%02dT%02d:%02d:%02d%c%02d:%02d",
+                 tm.tm_year + 1900, tm.tm_mon + 1,
+                 tm.tm_mday, tm.tm_hour,
+                 tm.tm_min, tm.tm_sec,
+                 ctx->start_time.gmtoff < 0 ? '-' : '+',
+                 ngx_abs(ctx->start_time.gmtoff / 60),
+                 ngx_abs(ctx->start_time.gmtoff % 60)) = 0;
+    } else {
+        *ngx_sprintf(avaliable_time, "%s", publish_time) = 0;
+    }
 
     ngx_libc_localtime(ctx->start_time.sec +
                        (ngx_rtmp_dash_get_frag(s, ctx->nfrags - 1)->timestamp +
@@ -392,8 +443,37 @@ ngx_rtmp_dash_write_playlist(ngx_rtmp_session_t *s)
                      (ngx_uint_t) (dacf->fraglen / 1000),
                      (ngx_uint_t) (dacf->fraglen / 1000),
                      buffer_depth,
-                     (ngx_uint_t) (dacf->fraglen / 500),
-                     avaliable_time);   /* UTCTiming value for shaka-player */
+                     (ngx_uint_t) (dacf->fraglen / 500)
+                     );
+
+    if (
+            dacf->clock_compensation != NGX_RTMP_DASH_CLOCK_COMPENSATION_OFF &&
+            dacf->clock_helper_uri.len > 0
+    ) {
+        /* UTCTiming value */
+        switch (dacf->clock_compensation) {
+            case NGX_RTMP_DASH_CLOCK_COMPENSATION_NTP:
+                    p = ngx_slprintf(p, last, NGX_RTMP_DASH_MANIFEST_CLOCK,
+                                     "ntp",
+                                     &dacf->clock_helper_uri
+                    );
+            break;
+            case NGX_RTMP_DASH_CLOCK_COMPENSATION_HTTP_HEAD:
+                    p = ngx_slprintf(p, last, NGX_RTMP_DASH_MANIFEST_CLOCK,
+                                     "http-head",
+                                     &dacf->clock_helper_uri
+                    );
+            break;
+            case NGX_RTMP_DASH_CLOCK_COMPENSATION_HTTP_ISO:
+                    p = ngx_slprintf(p, last, NGX_RTMP_DASH_MANIFEST_CLOCK,
+                                     "http-iso",
+                                     &dacf->clock_helper_uri
+                    );
+            break;
+        }
+    }
+
+    p = ngx_slprintf(p, last, NGX_RTMP_DASH_MANIFEST_PERIOD);
 
     n = ngx_write_fd(fd, buffer, p - buffer);
 
@@ -1521,6 +1601,7 @@ ngx_rtmp_dash_create_app_conf(ngx_conf_t *cf)
     conf->playlen = NGX_CONF_UNSET_MSEC;
     conf->cleanup = NGX_CONF_UNSET;
     conf->nested = NGX_CONF_UNSET;
+    conf->clock_compensation = NGX_CONF_UNSET;
 
     return conf;
 }
@@ -1538,6 +1619,9 @@ ngx_rtmp_dash_merge_app_conf(ngx_conf_t *cf, void *parent, void *child)
     ngx_conf_merge_msec_value(conf->playlen, prev->playlen, 30000);
     ngx_conf_merge_value(conf->cleanup, prev->cleanup, 1);
     ngx_conf_merge_value(conf->nested, prev->nested, 0);
+    ngx_conf_merge_uint_value(conf->clock_compensation, prev->clock_compensation,
+                              NGX_RTMP_DASH_CLOCK_COMPENSATION_OFF);
+    ngx_conf_merge_str_value(conf->clock_helper_uri, prev->clock_helper_uri, "");
 
     if (conf->fraglen) {
         conf->winfrags = conf->playlen / conf->fraglen;
