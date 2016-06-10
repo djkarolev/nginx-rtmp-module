@@ -152,7 +152,7 @@ ngx_rtmp_live_create_app_conf(ngx_conf_t *cf)
 
     lacf->live = NGX_CONF_UNSET;
     lacf->nbuckets = NGX_CONF_UNSET;
-    lacf->buffer = NGX_CONF_UNSET_MSEC;
+    lacf->buffer = NGX_CONF_UNSET;
     lacf->sync = NGX_CONF_UNSET_MSEC;
     lacf->idle_timeout = NGX_CONF_UNSET_MSEC;
     lacf->interleave = NGX_CONF_UNSET;
