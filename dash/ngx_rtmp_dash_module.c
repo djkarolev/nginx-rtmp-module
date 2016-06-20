@@ -257,7 +257,10 @@ ngx_rtmp_dash_write_playlist(ngx_rtmp_session_t *s)
     struct tm                  tm;
     ngx_str_t                  noname, *name;
     ngx_uint_t                 i, frame_rate_num, frame_rate_denom;
-    ngx_uint_t                 depth_msec, update_period;
+    ngx_uint_t                 depth_msec, depth_sec;
+    ngx_uint_t                 update_period, update_period_msec;
+    ngx_uint_t                 buffer_time, buffer_time_msec;
+    ngx_uint_t                 presentation_delay, presentation_delay_msec;
     ngx_rtmp_dash_ctx_t       *ctx;
     ngx_rtmp_codec_ctx_t      *codec_ctx;
     ngx_rtmp_dash_frag_t      *f;
@@ -268,7 +271,7 @@ ngx_rtmp_dash_write_playlist(ngx_rtmp_session_t *s)
     static u_char              buffer[NGX_RTMP_DASH_BUFSIZE];
     static u_char              avaliable_time[NGX_RTMP_DASH_GMT_LENGTH];
     static u_char              publish_time[NGX_RTMP_DASH_GMT_LENGTH];
-    static u_char              buffer_depth[sizeof("P00Y00M00DT00H00M00.00S")];
+    static u_char              buffer_depth[sizeof("P00Y00M00DT00H00M00.000S")];
     static u_char              frame_rate[(NGX_INT_T_LEN * 2) + 2];
 
     dacf = ngx_rtmp_get_module_app_conf(s, ngx_rtmp_dash_module);
@@ -300,10 +303,10 @@ ngx_rtmp_dash_write_playlist(ngx_rtmp_session_t *s)
     "    xmlns=\"urn:mpeg:dash:schema:mpd:2011\"\n"                            \
     "    availabilityStartTime=\"%s\"\n"                                       \
     "    publishTime=\"%s\"\n"                                                 \
-    "    minimumUpdatePeriod=\"PT%ui.%uiS\"\n"                                 \
-    "    minBufferTime=\"PT%ui.%uiS\"\n"                                       \
+    "    minimumUpdatePeriod=\"PT%ui.%03uiS\"\n"                               \
+    "    minBufferTime=\"PT%ui.%03uiS\"\n"                                     \
     "    timeShiftBufferDepth=\"%s\"\n"                                        \
-    "    suggestedPresentationDelay=\"PT%ui.%uiS\"\n"                          \
+    "    suggestedPresentationDelay=\"PT%ui.%03uiS\"\n"                        \
     "    profiles=\"urn:hbbtv:dash:profile:isoff-live:2012,"                   \
                    "urn:mpeg:dash:profile:isoff-live:2011\"\n"                 \
     "    xmlns:xsi=\"http://www.w3.org/2011/XMLSchema-instance\"\n"            \
@@ -401,18 +404,22 @@ ngx_rtmp_dash_write_playlist(ngx_rtmp_session_t *s)
     /* Stream publish time */
     *ngx_sprintf(publish_time, "%s", avaliable_time) = 0;
 
-    depth_msec = (ngx_uint_t) (
+    depth_sec = (ngx_uint_t) (
                  ngx_rtmp_dash_get_frag(s, ctx->nfrags - 1)->timestamp +
                  ngx_rtmp_dash_get_frag(s, ctx->nfrags - 1)->duration - 
                  ngx_rtmp_dash_get_frag(s, 0)->timestamp);
 
-    ngx_libc_gmtime((ngx_uint_t) (depth_msec / 1000), &tm);
+    depth_msec = depth_sec % 1000;
+    depth_sec -= depth_msec;
+    depth_sec /= 1000;
 
-    *ngx_sprintf(buffer_depth, "P%dY%02dM%02dDT%dH%02dM%02d.%02dS",
+    ngx_libc_gmtime(depth_sec, &tm);
+
+    *ngx_sprintf(buffer_depth, "P%dY%02dM%02dDT%dH%02dM%02d.%03dS",
                  tm.tm_year - 70, tm.tm_mon,
                  tm.tm_mday - 1, tm.tm_hour,
                  tm.tm_min, tm.tm_sec,
-                 (ngx_uint_t) ((depth_msec % 1000) / 10)) = 0;
+                 depth_msec) = 0;
 
     last = buffer + sizeof(buffer);
 
@@ -431,19 +438,37 @@ ngx_rtmp_dash_write_playlist(ngx_rtmp_session_t *s)
         }
     }
 
-    // Add 100 msec to make some update delay and trick int rounding
-    update_period += 100;
+    // Reasonable delay for streaming
+    presentation_delay = update_period * 2 + 1000;
+    presentation_delay_msec = presentation_delay % 1000;
+    presentation_delay -= presentation_delay_msec;
+    presentation_delay /= 1000;
 
+    // Calculate msec part and seconds
+    update_period_msec = update_period % 1000;
+    update_period -= update_period_msec;
+    update_period /= 1000;
+
+    // Buffer length by default fragment length
+    buffer_time = dacf->fraglen;
+    buffer_time_msec = buffer_time % 1000;
+    buffer_time -= buffer_time_msec;
+    buffer_time /= 1000;
+
+    // Fill DASH header
     p = ngx_slprintf(buffer, last, NGX_RTMP_DASH_MANIFEST_HEADER,
+                     // availabilityStartTime
                      avaliable_time,
+                     // publishTime
                      publish_time,
-                     (ngx_uint_t) (update_period / 1000),
-                     (ngx_uint_t) ((update_period % 1000) / 10),
-                     (ngx_uint_t) (update_period / 1000),
-                     (ngx_uint_t) ((update_period % 1000) / 10),
+                     // minimumUpdatePeriod
+                     update_period, update_period_msec,
+                     // minBufferTime
+                     buffer_time, buffer_time_msec,
+                     // timeShiftBufferDepth
                      buffer_depth,
-                     (ngx_uint_t) (update_period / 1000),
-                     (ngx_uint_t) ((update_period % 1000) / 10)
+                     // suggestedPresentationDelay
+                     presentation_delay, presentation_delay_msec
                      );
 
     /* UTCTiming value */
