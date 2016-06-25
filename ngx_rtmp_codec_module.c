@@ -454,7 +454,7 @@ ngx_rtmp_codec_parse_avc_header(ngx_rtmp_session_t *s, ngx_chain_t *in)
                         if (sl_next != 0) {
 
                             /* convert to signed: (-1)**k+1 * ceil(k/2) */
-                            sl_udelta = ngx_rtmp_bit_read_golomb(&br);
+                            sl_udelta = (ngx_uint_t)ngx_rtmp_bit_read_golomb(&br);
                             sl_delta = (sl_udelta + 1) >> 1;
                             if ((sl_udelta & 1) == 0) {
                                 sl_delta = -sl_delta;
