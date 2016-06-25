@@ -504,7 +504,9 @@ ngx_rtmp_core_listen(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     struct sockaddr            *sa;
     ngx_rtmp_listen_t          *ls;
     struct sockaddr_in         *sin;
+#if (nginx_version >= 1011000)
     u_char                     *sa_cp;
+#endif
     ngx_rtmp_core_main_conf_t  *cmcf;
 #if (NGX_HAVE_INET6)
     struct sockaddr_in6        *sin6;
