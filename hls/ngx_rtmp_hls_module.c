@@ -1050,7 +1050,7 @@ ngx_rtmp_hls_open_fragment(ngx_rtmp_session_t *s, uint64_t ts,
     }
 
     // This is continuity counter for TS header
-    mpegts_cc = (ctx->nfrags + ctx->frag);
+    mpegts_cc = (ngx_uint_t)(ctx->nfrags + ctx->frag);
 
     ngx_log_debug7(NGX_LOG_DEBUG_RTMP, s->connection->log, 0,
                    "hls: open fragment file='%s', keyfile='%s', "
