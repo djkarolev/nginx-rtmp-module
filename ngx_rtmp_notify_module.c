@@ -1447,14 +1447,57 @@ ngx_rtmp_notify_play_handle(ngx_rtmp_session_t *s,
     if (ngx_strncasecmp(name, (u_char *) "rtmp://", 7)) {
         *ngx_cpymem(v->name, name, rc) = 0;
         ngx_log_error(NGX_LOG_INFO, s->connection->log, 0,
-                      "notify: play redirect to '%s'", v->name);
+                      "notify: play internal redirect to '%s'", v->name);
         goto next;
     }
 
     /* pull */
 
     nacf = ngx_rtmp_get_module_app_conf(s, ngx_rtmp_notify_module);
-    if (nacf->relay_redirect) {
+    if (nacf->send_redirect) {
+        // Send 302 redirect and go next
+
+        ngx_log_error(NGX_LOG_INFO, s->connection->log, 0,
+                  "notify: play send 302 redirect");
+        ngx_log_error(NGX_LOG_INFO, s->connection->log, 0,
+                  "notify: -- for stream '%s' to new location '%*s'", v->name, rc, name);
+
+        local_name.data = ngx_palloc(s->connection->pool, rc+1);
+        local_name.len = rc;
+        *ngx_cpymem(local_name.data, name, rc) = 0;
+
+        /* MAGICK HERE */
+
+        if (!ngx_strncasecmp(s->flashver.data, (u_char *) "FMLE/", 5)) {
+            // Official method, by FMS SDK
+            send = ngx_rtmp_send_redirect_status(s, "onStatus", "Connect here", local_name);
+            send &= ngx_rtmp_send_redirect_status(s, "netStatus", "Connect here", local_name);
+
+            ngx_log_error(NGX_LOG_INFO, s->connection->log, 0,
+                      "notify: play send(o) status = '%ui'", send == NGX_OK);
+        } else {
+
+            // Something by rtmpdump lib
+            send = ngx_rtmp_send_redirect_status(s, "_error", "Connect here", local_name);
+
+            ngx_log_error(NGX_LOG_INFO, s->connection->log, 0,
+                      "notify: play send(e) status = '%ui'", send == NGX_OK);
+        }
+
+        ngx_pfree(s->connection->pool, local_name.data);
+
+        ngx_rtmp_notify_clear_flag(s, NGX_RTMP_NOTIFY_PLAYING);
+
+        // Something by rtmpdump lib
+        send = ngx_rtmp_send_close_method(s, "close");
+        ngx_log_error(NGX_LOG_INFO, s->connection->log, 0,
+            "notify: play send(e) close method = '%ui'", send == NGX_OK);
+
+        return send;
+
+    } else if (nacf->relay_redirect) {
+        // Relay local streams, change name
+
         ngx_rtmp_notify_set_name(v->name, NGX_RTMP_MAX_NAME, name, (size_t) rc);
     }
 
