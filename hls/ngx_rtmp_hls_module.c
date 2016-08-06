@@ -39,8 +39,8 @@ typedef struct {
     uint64_t                            key_id;
     ngx_str_t                          *datetime;
     double                              duration;
-    unsigned                            active:1;
-    unsigned                            discont:1; /* before */
+    u_char                              active;     /* small int, 0/1 */
+    u_char                              discont;    /* small int, 0/1 */
 } ngx_rtmp_hls_frag_t;
 
 
@@ -51,7 +51,7 @@ typedef struct {
 
 
 typedef struct {
-    unsigned                            opened:1;
+    u_char                              opened;     /* small int, 0/1 */
 
     ngx_rtmp_mpegts_file_t              file;
 
@@ -534,7 +534,8 @@ ngx_rtmp_hls_write_playlist(ngx_rtmp_session_t *s)
     ssize_t                         n;
     ngx_rtmp_hls_app_conf_t        *hacf;
     ngx_rtmp_hls_frag_t            *f;
-    ngx_uint_t                      i, start_i, max_frag;
+    ngx_int_t                      i, start_i;
+    ngx_uint_t                      max_frag;
     double                          fragments_length;
     ngx_str_t                       name_part, key_name_part;
     uint64_t                        prev_key_id;
@@ -558,6 +559,8 @@ ngx_rtmp_hls_write_playlist(ngx_rtmp_session_t *s)
         return NGX_ERROR;
     }
 
+    max_frag = hacf->fraglen / 1000;
+
     /**
      * Need to check fragments length sum and playlist max length
      * Do backward search
@@ -569,7 +572,12 @@ ngx_rtmp_hls_write_playlist(ngx_rtmp_session_t *s)
         if (f->duration) {
             fragments_length += f->duration;
         }
-        if (fragments_length >= hacf->playlen/1000.) {
+        /**
+         * Think that sum of frag length is more than playlist disired length - half minimal frag length
+         * XXX: sometimes sum of frag lengths are almost playlist length
+         *      but key-frames come at random rate...
+         */
+        if (fragments_length >= hacf->playlen/1000. - max_frag/2) {
             start_i = i;
             break;
         }
@@ -577,8 +585,6 @@ ngx_rtmp_hls_write_playlist(ngx_rtmp_session_t *s)
 
     ngx_log_debug1(NGX_LOG_DEBUG_RTMP, s->connection->log, 0,
                    "hls: found starting fragment=%i", start_i);
-
-    max_frag = hacf->fraglen / 1000;
 
     for (i = start_i; i < ctx->nfrags; i++) {
         f = ngx_rtmp_hls_get_frag(s, i);
@@ -669,7 +675,7 @@ ngx_rtmp_hls_write_playlist(ngx_rtmp_session_t *s)
         ngx_log_debug5(NGX_LOG_DEBUG_RTMP, s->connection->log, 0,
                        "hls: fragment frag=%uL, n=%ui/%ui, duration=%.3f, "
                        "discont=%i",
-                       ctx->frag, i + 1, ctx->nfrags, f->duration, f->discont);
+                       ctx->frag, i + 1, ctx->nfrags, f->duration, (ngx_int_t)f->discont);
 
         n = ngx_write_fd(fd, buffer, p - buffer);
         if (n < 0) {
