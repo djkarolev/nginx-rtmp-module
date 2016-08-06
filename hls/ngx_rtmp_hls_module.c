@@ -573,7 +573,7 @@ ngx_rtmp_hls_write_playlist(ngx_rtmp_session_t *s)
             fragments_length += f->duration;
         }
         /**
-         * Think that sum of frag length is more than playlist disired length - half minimal frag length
+         * Think that sum of frag length is more than playlist desired length - half minimal frag length
          * XXX: sometimes sum of frag lengths are almost playlist length
          *      but key-frames come at random rate...
          */
