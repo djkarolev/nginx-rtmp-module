@@ -247,6 +247,22 @@ ngx_rtmp_dash_rename_file(u_char *src, u_char *dst)
 }
 
 
+static ngx_uint_t
+ngx_rtmp_dash_gcd(ngx_uint_t m, ngx_uint_t n)
+{
+    /* greatest common divisor */
+
+    ngx_uint_t   temp;
+
+    while (n) {
+        temp=n;
+        n=m % n;
+        m=temp;
+    }
+    return m;
+}
+
+
 static ngx_int_t
 ngx_rtmp_dash_write_playlist(ngx_rtmp_session_t *s)
 {
@@ -261,6 +277,7 @@ ngx_rtmp_dash_write_playlist(ngx_rtmp_session_t *s)
     ngx_uint_t                 update_period, update_period_msec;
     ngx_uint_t                 buffer_time, buffer_time_msec;
     ngx_uint_t                 presentation_delay, presentation_delay_msec;
+    ngx_uint_t                 gcd, par_x, par_y;
     ngx_rtmp_dash_ctx_t       *ctx;
     ngx_rtmp_codec_ctx_t      *codec_ctx;
     ngx_rtmp_dash_frag_t      *f;
@@ -312,10 +329,6 @@ ngx_rtmp_dash_write_playlist(ngx_rtmp_session_t *s)
     "    xmlns:xsi=\"http://www.w3.org/2011/XMLSchema-instance\"\n"            \
     "    xsi:schemaLocation=\"urn:mpeg:DASH:schema:MPD:2011 DASH-MPD.xsd\">\n"
 
-#define NGX_RTMP_DASH_MANIFEST_CLOCK                                           \
-    "  <UTCTiming schemeIdUri=\"urn:mpeg:dash:utc:%s:2014\"\n"                 \
-    "       value=\"%V\" />\n"                                                 \
-
 #define NGX_RTMP_DASH_MANIFEST_PERIOD                                          \
     "  <Period start=\"PT0S\" id=\"dash\">\n"
 
@@ -323,11 +336,12 @@ ngx_rtmp_dash_write_playlist(ngx_rtmp_session_t *s)
 #define NGX_RTMP_DASH_MANIFEST_VIDEO                                           \
     "    <AdaptationSet\n"                                                     \
     "        id=\"1\"\n"                                                       \
-    "        segmentAlignment=\"true\"\n"                                      \
     "        startWithSAP=\"1\"\n"                                             \
+    "        segmentAlignment=\"true\"\n"                                      \
     "        maxWidth=\"%ui\"\n"                                               \
     "        maxHeight=\"%ui\"\n"                                              \
-    "        maxFrameRate=\"%s\">\n"                                           \
+    "        maxFrameRate=\"%s\"\n"                                            \
+    "        par=\"%ui:%ui\">\n"                                               \
     "      <Representation\n"                                                  \
     "          id=\"%V_H264\"\n"                                               \
     "          mimeType=\"video/mp4\"\n"                                       \
@@ -386,9 +400,18 @@ ngx_rtmp_dash_write_playlist(ngx_rtmp_session_t *s)
     "    </AdaptationSet>\n"
 
 
+#define NGX_RTMP_DASH_PERIOD_FOOTER                                          \
+    "  </Period>\n"
+
+
+#define NGX_RTMP_DASH_MANIFEST_CLOCK                                           \
+    "  <UTCTiming schemeIdUri=\"urn:mpeg:dash:utc:%s:2014\"\n"                 \
+    "       value=\"%V\" />\n"
+
+
 #define NGX_RTMP_DASH_MANIFEST_FOOTER                                          \
-    "  </Period>\n"                                                            \
     "</MPD>\n"
+
 
 /**
  * Availability time must be equal stream start time
@@ -471,28 +494,6 @@ ngx_rtmp_dash_write_playlist(ngx_rtmp_session_t *s)
                      presentation_delay, presentation_delay_msec
                      );
 
-    /* UTCTiming value */
-    switch (dacf->clock_compensation) {
-        case NGX_RTMP_DASH_CLOCK_COMPENSATION_NTP:
-                p = ngx_slprintf(p, last, NGX_RTMP_DASH_MANIFEST_CLOCK,
-                                 "ntp",
-                                 &dacf->clock_helper_uri
-                );
-        break;
-        case NGX_RTMP_DASH_CLOCK_COMPENSATION_HTTP_HEAD:
-                p = ngx_slprintf(p, last, NGX_RTMP_DASH_MANIFEST_CLOCK,
-                                 "http-head",
-                                 &dacf->clock_helper_uri
-                );
-        break;
-        case NGX_RTMP_DASH_CLOCK_COMPENSATION_HTTP_ISO:
-                p = ngx_slprintf(p, last, NGX_RTMP_DASH_MANIFEST_CLOCK,
-                                 "http-iso",
-                                 &dacf->clock_helper_uri
-                );
-        break;
-    }
-
     p = ngx_slprintf(p, last, NGX_RTMP_DASH_MANIFEST_PERIOD);
 
     n = ngx_write_fd(fd, buffer, p - buffer);
@@ -527,10 +528,15 @@ ngx_rtmp_dash_write_playlist(ngx_rtmp_session_t *s)
             *ngx_sprintf(frame_rate, "%ui/%ui", frame_rate_num, frame_rate_denom) = 0;
         }
 
+        gcd = ngx_rtmp_dash_gcd(codec_ctx->width, codec_ctx->height);
+        par_x = codec_ctx->width / gcd;
+        par_y = codec_ctx->height / gcd;
+
         p = ngx_slprintf(buffer, last, NGX_RTMP_DASH_MANIFEST_VIDEO,
                          codec_ctx->width,
                          codec_ctx->height,
                          frame_rate,
+                         par_x, par_y,
                          &ctx->name,
                          codec_ctx->avc_profile,
                          codec_ctx->avc_compat,
@@ -572,6 +578,34 @@ ngx_rtmp_dash_write_playlist(ngx_rtmp_session_t *s)
         p = ngx_slprintf(p, last, NGX_RTMP_DASH_MANIFEST_AUDIO_FOOTER);
 
         n = ngx_write_fd(fd, buffer, p - buffer);
+    }
+
+    p = ngx_slprintf(buffer, last, NGX_RTMP_DASH_PERIOD_FOOTER);
+    n = ngx_write_fd(fd, buffer, p - buffer);
+
+    /* UTCTiming value */
+    switch (dacf->clock_compensation) {
+        case NGX_RTMP_DASH_CLOCK_COMPENSATION_NTP:
+                p = ngx_slprintf(buffer, last, NGX_RTMP_DASH_MANIFEST_CLOCK,
+                                 "ntp",
+                                 &dacf->clock_helper_uri
+                );
+                n = ngx_write_fd(fd, buffer, p - buffer);
+        break;
+        case NGX_RTMP_DASH_CLOCK_COMPENSATION_HTTP_HEAD:
+                p = ngx_slprintf(buffer, last, NGX_RTMP_DASH_MANIFEST_CLOCK,
+                                 "http-head",
+                                 &dacf->clock_helper_uri
+                );
+                n = ngx_write_fd(fd, buffer, p - buffer);
+        break;
+        case NGX_RTMP_DASH_CLOCK_COMPENSATION_HTTP_ISO:
+                p = ngx_slprintf(buffer, last, NGX_RTMP_DASH_MANIFEST_CLOCK,
+                                 "http-iso",
+                                 &dacf->clock_helper_uri
+                );
+                n = ngx_write_fd(fd, buffer, p - buffer);
+        break;
     }
 
     p = ngx_slprintf(buffer, last, NGX_RTMP_DASH_MANIFEST_FOOTER);
