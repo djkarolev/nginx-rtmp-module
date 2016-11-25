@@ -1142,7 +1142,7 @@ ngx_rtmp_live_data(ngx_rtmp_session_t *s, ngx_rtmp_header_t *h,
         ngx_rtmp_free_shared_chain(cscf, data);
     }
 
-    if (rpkt) {
+    if (rpkt && !data) {
         ngx_rtmp_free_shared_chain(cscf, rpkt);
     }
 
