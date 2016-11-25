@@ -1634,7 +1634,11 @@ ngx_rtmp_dash_cleanup(void *data)
 
     // Next callback in doubled playlist length time to make sure what all 
     // players read all segments
+#if (nginx_version >= 1011005)
+    return cleanup->playlen * 2;
+#else
     return cleanup->playlen / 500;
+#endif
 }
 
 static ngx_int_t

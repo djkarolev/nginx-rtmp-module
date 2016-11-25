@@ -2377,7 +2377,11 @@ ngx_rtmp_hls_cleanup(void *data)
     ngx_rtmp_hls_cleanup_dir(&cleanup->path, cleanup->playlen);
 
     // Next callback in half of playlist length time
+#if (nginx_version >= 1011005)
+    return cleanup->playlen / 2;
+#else
     return cleanup->playlen / 2000;
+#endif
 }
 
 
