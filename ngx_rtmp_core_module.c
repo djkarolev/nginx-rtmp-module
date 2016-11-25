@@ -504,9 +504,6 @@ ngx_rtmp_core_listen(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     struct sockaddr            *sa;
     ngx_rtmp_listen_t          *ls;
     struct sockaddr_in         *sin;
-#if (nginx_version >= 1011000)
-    u_char                     *sa_cp;
-#endif
     ngx_rtmp_core_main_conf_t  *cmcf;
 #if (NGX_HAVE_INET6)
     struct sockaddr_in6        *sin6;
@@ -561,8 +558,7 @@ ngx_rtmp_core_listen(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
         }
 
 #if (nginx_version >= 1011000)
-        sa_cp = (u_char *)(&u.sockaddr);
-        if (ngx_memcmp(ls[i].sockaddr + off, sa_cp + off, len) != 0) {
+        if (ngx_memcmp(ls[i].sockaddr + off, (u_char *) &u.sockaddr + off, len) != 0) {
 #else
         if (ngx_memcmp(ls[i].sockaddr + off, u.sockaddr + off, len) != 0) {
 #endif
@@ -586,8 +582,7 @@ ngx_rtmp_core_listen(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     ngx_memzero(ls, sizeof(ngx_rtmp_listen_t));
 
 #if (nginx_version >= 1011000)
-    sa_cp = (u_char *)(&u.sockaddr);
-    ngx_memcpy(ls->sockaddr, sa_cp, u.socklen);
+    ngx_memcpy(ls->sockaddr, (u_char *) &u.sockaddr, u.socklen);
 #else
     ngx_memcpy(ls->sockaddr, u.sockaddr, u.socklen);
 #endif
