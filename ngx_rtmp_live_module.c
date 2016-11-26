@@ -18,7 +18,6 @@ static ngx_rtmp_pause_pt                next_pause;
 static ngx_rtmp_stream_begin_pt         next_stream_begin;
 static ngx_rtmp_stream_eof_pt           next_stream_eof;
 
-
 static ngx_int_t ngx_rtmp_live_postconfiguration(ngx_conf_t *cf);
 static void * ngx_rtmp_live_create_app_conf(ngx_conf_t *cf);
 static char * ngx_rtmp_live_merge_app_conf(ngx_conf_t *cf,
@@ -27,7 +26,6 @@ static char *ngx_rtmp_live_set_msec_slot(ngx_conf_t *cf, ngx_command_t *cmd,
        void *conf);
 static void ngx_rtmp_live_start(ngx_rtmp_session_t *s);
 static void ngx_rtmp_live_stop(ngx_rtmp_session_t *s);
-
 
 static ngx_command_t  ngx_rtmp_live_commands[] = {
 
@@ -1530,3 +1528,4 @@ ngx_rtmp_live_postconfiguration(ngx_conf_t *cf)
 
     return NGX_OK;
 }
+

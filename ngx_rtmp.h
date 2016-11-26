@@ -222,7 +222,7 @@ typedef struct {
     /* handshake data */
     ngx_buf_t              *hs_buf;
     u_char                 *hs_digest;
-    unsigned                hs_old:1;
+    u_char                  hs_old;
     ngx_uint_t              hs_stage;
 
     /* connection timestamps */
@@ -232,17 +232,20 @@ typedef struct {
     uint32_t                current_time;
 
     /* ready for publishing? */
-    unsigned                ready_for_publish:1;
+    u_char                  ready_for_publish;
 
     /* ping */
     ngx_event_t             ping_evt;
-    unsigned                ping_active:1;
-    unsigned                ping_reset:1;
+    u_char                  ping_active;
+    u_char                  ping_reset;
+
+    /* reload */
+    ngx_event_t             exit_evt;
 
     /* auto-pushed? */
-    unsigned                auto_pushed:1;
-    unsigned                relay:1;
-    unsigned                static_relay:1;
+    u_char                  auto_pushed;
+    u_char                  relay;
+    u_char                  static_relay;
 
     /* input stream 0 (reserved by RTMP spec)
      * is used as free chain link */
@@ -314,6 +317,10 @@ typedef struct ngx_rtmp_core_srv_conf_s {
     ngx_msec_t              timeout;
     ngx_msec_t              ping;
     ngx_msec_t              ping_timeout;
+
+    /* Just define, no option really */
+    ngx_msec_t              exit_check;
+
     ngx_flag_t              so_keepalive;
     ngx_int_t               max_streams;
 
@@ -410,6 +417,7 @@ void ngx_rtmp_client_handshake(ngx_rtmp_session_t *s, unsigned async);
 void ngx_rtmp_free_handshake_buffers(ngx_rtmp_session_t *s);
 void ngx_rtmp_cycle(ngx_rtmp_session_t *s);
 void ngx_rtmp_reset_ping(ngx_rtmp_session_t *s);
+void ngx_rtmp_reset_exit(ngx_rtmp_session_t *s);
 ngx_int_t ngx_rtmp_fire_event(ngx_rtmp_session_t *s, ngx_uint_t evt,
         ngx_rtmp_header_t *h, ngx_chain_t *in);
 
