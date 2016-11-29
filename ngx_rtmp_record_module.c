@@ -112,7 +112,7 @@ static ngx_command_t  ngx_rtmp_record_commands[] = {
 
     { ngx_string("record_interval_size"),
       NGX_RTMP_MAIN_CONF|NGX_RTMP_SRV_CONF|NGX_RTMP_APP_CONF|
-			NGX_RTMP_REC_CONF|NGX_CONF_TAKE1,
+                        NGX_RTMP_REC_CONF|NGX_CONF_TAKE1,
       ngx_conf_set_size_slot,
       NGX_RTMP_APP_CONF_OFFSET,
       offsetof(ngx_rtmp_record_app_conf_t, interval_size),
@@ -990,14 +990,6 @@ ngx_rtmp_record_write_frame(ngx_rtmp_session_t *s,
         ngx_rtmp_record_node_close(s, rctx);
     }
 
-    /* watch size interval */
-    if ((rracf->interval_size && rctx->file.offset >= (ngx_int_t) rracf->interval_size) ||
-        (rracf->max_frames && rctx->nframes >= rracf->max_frames))
-    {
-	ngx_rtmp_record_node_close(s, rctx);
-	ngx_rtmp_record_node_open(s, rctx);
-    }
-
     return NGX_OK;
 }
 
@@ -1070,9 +1062,9 @@ ngx_rtmp_record_node_avd(ngx_rtmp_session_t *s, ngx_rtmp_record_rec_ctx_t *rctx,
         return NGX_OK;
     }
 
-    if (rctx->file.fd == NGX_INVALID_FILE) {
+    /*if (rctx->file.fd == NGX_INVALID_FILE) {
         return NGX_OK;
-    }
+    }*/
 
     if (h->type == NGX_RTMP_MSG_AUDIO &&
        (rracf->flags & NGX_RTMP_RECORD_AUDIO) == 0)
@@ -1093,9 +1085,9 @@ ngx_rtmp_record_node_avd(ngx_rtmp_session_t *s, ngx_rtmp_record_rec_ctx_t *rctx,
         return NGX_OK;
     }
 
-    // record interval should work if set, manual mode or not
-    if (rracf->interval != (ngx_msec_t) NGX_CONF_UNSET) {
-
+    if (rracf->interval != NGX_CONF_UNSET_MSEC)
+    {
+	// record interval should work if set, manual mode or not
         next = rctx->last;
         next.msec += rracf->interval;
         next.sec  += (next.msec / 1000);
@@ -1104,12 +1096,13 @@ ngx_rtmp_record_node_avd(ngx_rtmp_session_t *s, ngx_rtmp_record_rec_ctx_t *rctx,
         if (ngx_cached_time->sec  > next.sec ||
            (ngx_cached_time->sec == next.sec &&
            ngx_cached_time->msec > next.msec))
-        {
-            ngx_rtmp_record_node_close(s, rctx);
-            ngx_rtmp_record_node_open(s, rctx);
-        }
-
-    } else if (!rctx->failed) {
+            {
+		ngx_rtmp_record_node_close(s, rctx);
+                ngx_rtmp_record_node_open(s, rctx);
+            }
+    }
+    else if (!rctx->failed)
+    {
         ngx_rtmp_record_node_open(s, rctx);
     }
 
