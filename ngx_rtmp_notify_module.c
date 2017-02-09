@@ -855,7 +855,7 @@ ngx_rtmp_notify_record_started_create(ngx_rtmp_session_t *s, void *arg,
     args_len  = ngx_strlen(ctx->args);
 
     b = ngx_create_temp_buf(pool,
-            sizeof("call=record_done") +
+            sizeof("call=record_started") +
             sizeof("&recorder=") + v->recorder.len +
             sizeof("&name=") + name_len * 3 +
             sizeof("&path=") + v->path.len * 3 +
@@ -1953,7 +1953,7 @@ ngx_rtmp_notify_record_started(ngx_rtmp_session_t *s, ngx_rtmp_record_started_t 
     ngx_log_error(NGX_LOG_INFO, s->connection->log, 0,
                   "notify: record_started recorder=%V path='%V' url='%V'",
                   &v->recorder, &v->path,
-                  &nacf->url[NGX_RTMP_NOTIFY_RECORD_DONE]->url);
+                  &nacf->url[NGX_RTMP_NOTIFY_RECORD_STARTED]->url);
 
     ngx_memzero(&ci, sizeof(ci));
 
