@@ -1321,9 +1321,6 @@ next:
 static ngx_int_t
 ngx_rtmp_exec_record_started(ngx_rtmp_session_t *s, ngx_rtmp_record_started_t *v)
 {
-    u_char                     c;
-    ngx_uint_t                 ext, dir;
-    ngx_rtmp_exec_ctx_t       *ctx;
     ngx_rtmp_exec_app_conf_t  *eacf;
 
     if (s->auto_pushed) {
@@ -1335,37 +1332,6 @@ ngx_rtmp_exec_record_started(ngx_rtmp_session_t *s, ngx_rtmp_record_started_t *v
         goto next;
     }
 
-    ctx = ngx_rtmp_get_module_ctx(s, ngx_rtmp_exec_module);
-    if (ctx == NULL) {
-        goto next;
-    }
-
-    ctx->recorder = v->recorder;
-    ctx->path = v->path;
-
-    ctx->dirname.data = ctx->path.data;
-    ctx->dirname.len = 0;
-
-    for (dir = ctx->path.len; dir > 0; dir--) {
-        c = ctx->path.data[dir - 1];
-        if (c == '/' || c == '\\') {
-            ctx->dirname.len = dir - 1;
-            break;
-        }
-    }
-
-    ctx->filename.data = ctx->path.data + dir;
-    ctx->filename.len = ctx->path.len - dir;
-
-    ctx->basename = ctx->filename;
-
-    for (ext = ctx->filename.len; ext > 0; ext--) {
-        if (ctx->filename.data[ext - 1] == '.') {
-            ctx->basename.len = ext - 1;
-            break;
-        }
-    }
-
     ngx_rtmp_exec_unmanaged(s, &eacf->conf[NGX_RTMP_EXEC_RECORD_STARTED],
                             "record_started");
 
@@ -1375,6 +1341,7 @@ ngx_rtmp_exec_record_started(ngx_rtmp_session_t *s, ngx_rtmp_record_started_t *v
 next:
     return next_record_started(s, v);
 }
+
 
 static ngx_int_t
 ngx_rtmp_exec_record_done(ngx_rtmp_session_t *s, ngx_rtmp_record_done_t *v)
