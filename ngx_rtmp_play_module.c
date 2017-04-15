@@ -18,7 +18,6 @@ static ngx_rtmp_close_stream_pt         next_close_stream;
 static ngx_rtmp_seek_pt                 next_seek;
 static ngx_rtmp_pause_pt                next_pause;
 
-
 static char *ngx_rtmp_play_url(ngx_conf_t *cf, ngx_command_t *cmd,
        void *conf);
 static void *ngx_rtmp_play_create_main_conf(ngx_conf_t *cf);
@@ -53,7 +52,6 @@ static ngx_rtmp_play_entry_t * ngx_rtmp_play_get_current_entry(
 static void ngx_rtmp_play_cleanup_local_file(ngx_rtmp_session_t *s);
 static void ngx_rtmp_play_copy_local_file(ngx_rtmp_session_t *s, u_char *name);
 static u_char * ngx_rtmp_play_get_local_file_path(ngx_rtmp_session_t *s);
-
 
 static ngx_command_t  ngx_rtmp_play_commands[] = {
 
@@ -1351,3 +1349,4 @@ ngx_rtmp_play_postconfiguration(ngx_conf_t *cf)
 
     return NGX_OK;
 }
+
