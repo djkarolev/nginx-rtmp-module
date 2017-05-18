@@ -238,7 +238,6 @@ ngx_rtmp_core_create_srv_conf(ngx_conf_t *cf)
     conf->timeout = NGX_CONF_UNSET_MSEC;
     conf->ping = NGX_CONF_UNSET_MSEC;
     conf->ping_timeout = NGX_CONF_UNSET_MSEC;
-    conf->exit_check = NGX_CONF_UNSET_MSEC;
     conf->so_keepalive = NGX_CONF_UNSET;
     conf->max_streams = NGX_CONF_UNSET;
     conf->chunk_size = NGX_CONF_UNSET;
@@ -264,9 +263,6 @@ ngx_rtmp_core_merge_srv_conf(ngx_conf_t *cf, void *parent, void *child)
     ngx_conf_merge_msec_value(conf->timeout, prev->timeout, 60000);
     ngx_conf_merge_msec_value(conf->ping, prev->ping, 60000);
     ngx_conf_merge_msec_value(conf->ping_timeout, prev->ping_timeout, 30000);
-
-    /* Dirty hack */
-    ngx_conf_merge_msec_value(conf->exit_check, prev->exit_check, 1000);
 
     ngx_conf_merge_value(conf->so_keepalive, prev->so_keepalive, 0);
     ngx_conf_merge_value(conf->max_streams, prev->max_streams, 32);

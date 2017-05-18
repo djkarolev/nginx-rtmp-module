@@ -797,6 +797,7 @@ ngx_rtmp_cmd_playlist(ngx_rtmp_session_t *s, ngx_rtmp_playlist_t *v)
 }
 
 
+
 static ngx_rtmp_amf_handler_t ngx_rtmp_cmd_map[] = {
     { ngx_string("connect"),            ngx_rtmp_cmd_connect_init           },
     { ngx_string("createStream"),       ngx_rtmp_cmd_create_stream_init     },
