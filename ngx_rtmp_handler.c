@@ -13,7 +13,6 @@
 static void ngx_rtmp_recv(ngx_event_t *rev);
 static void ngx_rtmp_send(ngx_event_t *rev);
 static void ngx_rtmp_ping(ngx_event_t *rev);
-static void ngx_rtmp_exit(ngx_event_t *rev);
 static ngx_int_t ngx_rtmp_finalize_set_chunk_size(ngx_rtmp_session_t *s);
 
 
@@ -95,11 +94,6 @@ ngx_rtmp_cycle(ngx_rtmp_session_t *s)
     s->ping_evt.handler = ngx_rtmp_ping;
     ngx_rtmp_reset_ping(s);
 
-    s->exit_evt.data = c;
-    s->exit_evt.log = c->log;
-    s->exit_evt.handler = ngx_rtmp_exit;
-    ngx_rtmp_reset_exit(s);
-
     ngx_rtmp_recv(c->read);
 }
 
@@ -149,19 +143,6 @@ ngx_rtmp_reset_ping(ngx_rtmp_session_t *s)
             "ping: wait %Mms", cscf->ping);
 }
 
-void
-ngx_rtmp_reset_exit(ngx_rtmp_session_t *s)
-{
-    ngx_rtmp_core_srv_conf_t   *cscf;
-
-    cscf = ngx_rtmp_get_module_srv_conf(s, ngx_rtmp_core_module);
-
-    ngx_add_timer(&s->exit_evt, cscf->exit_check);
-
-    ngx_log_debug1(NGX_LOG_DEBUG_RTMP, s->connection->log, 0,
-            "exit event: wait %Mms", cscf->exit_check);
-}
-
 
 static void
 ngx_rtmp_ping(ngx_event_t *pev)
@@ -205,32 +186,6 @@ ngx_rtmp_ping(ngx_event_t *pev)
 
     s->ping_active = 1;
     ngx_add_timer(pev, cscf->ping_timeout);
-}
-
-
-static void
-ngx_rtmp_exit(ngx_event_t *pev)
-{
-    ngx_connection_t           *c;
-    ngx_rtmp_session_t         *s;
-    ngx_rtmp_core_srv_conf_t   *cscf;
-
-    c = pev->data;
-    s = c->data;
-
-    cscf = ngx_rtmp_get_module_srv_conf(s, ngx_rtmp_core_module);
-
-    if (ngx_exiting) {
-        ngx_log_error(NGX_LOG_INFO, c->log, 0,
-                "exit event: nginx want to exit now! Close session.");
-        ngx_rtmp_finalize_session(s);
-        return;
-    }
-
-    ngx_log_debug1(NGX_LOG_DEBUG_RTMP, s->connection->log, 0,
-            "exit event: schedule %Mms", cscf->exit_check);
-
-    ngx_add_timer(pev, cscf->exit_check);
 }
 
 
