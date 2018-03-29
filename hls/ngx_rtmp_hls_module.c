@@ -608,7 +608,7 @@ ngx_rtmp_hls_write_playlist(ngx_rtmp_session_t *s)
 
     for (i = 0; i < ctx->nfrags; i++) {
         f = ngx_rtmp_hls_get_frag(s, i);
-        if (i == 0 && f->datetime && f->datetime->len > 0) {
+        if ((i == 0 || f->discont) && f->datetime && f->datetime->len > 0) {
             p = ngx_snprintf(buffer, sizeof(buffer), "#EXT-X-PROGRAM-DATE-TIME:");
             n = ngx_write_fd(fd, buffer, p - buffer);
             if (n < 0) {
