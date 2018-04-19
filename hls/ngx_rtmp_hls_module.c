@@ -9,7 +9,9 @@
 #include <ngx_rtmp.h>
 #include <ngx_rtmp_cmd_module.h>
 #include <ngx_rtmp_codec_module.h>
+#include <ngx_rtmp_live_module.h>
 #include "ngx_rtmp_mpegts.h"
+
 
 
 static ngx_rtmp_publish_pt              next_publish;
@@ -296,7 +298,7 @@ static ngx_command_t ngx_rtmp_hls_commands[] = {
       ngx_conf_set_enum_slot,
       NGX_RTMP_APP_CONF_OFFSET,
       offsetof(ngx_rtmp_hls_app_conf_t, allow_client_cache),
-      &ngx_rtmp_hls_cache },       
+      &ngx_rtmp_hls_cache },
 
     { ngx_string("hls_variant"),
       NGX_RTMP_MAIN_CONF|NGX_RTMP_SRV_CONF|NGX_RTMP_APP_CONF|NGX_CONF_1MORE,
@@ -381,6 +383,36 @@ ngx_module_t  ngx_rtmp_hls_module = {
     NGX_MODULE_V1_PADDING
 };
 
+static ngx_rtmp_codec_ctx_t * ngx_rtmp_hls_get_stream(ngx_rtmp_session_t *s, u_char *name)
+{
+    ngx_rtmp_core_app_conf_t *cacf;
+    ngx_rtmp_live_app_conf_t *lacf;
+    ngx_int_t                 n;
+    ngx_rtmp_live_stream_t   *stream;
+    ngx_rtmp_codec_ctx_t     *codec;
+    ngx_rtmp_live_ctx_t      *ctx;
+    ngx_rtmp_session_t       *s2;
+
+    cacf = *s->app_conf;
+    lacf = cacf->app_conf[ngx_rtmp_live_module.ctx_index];
+
+    for (n = 0; n < lacf->nbuckets; ++n) {
+        for (stream = lacf->streams[n]; stream; stream = stream->next) {
+            if (ngx_strcmp(name, stream->name) == 0) {
+                codec = NULL;
+                for (ctx = stream->ctx; ctx; ctx = ctx->next) {
+                    if (ctx->publishing) {
+                        s2 = ctx->session;
+                        codec = ngx_rtmp_get_module_ctx(s2, ngx_rtmp_codec_module);
+                        return codec;
+                    }
+                }
+            }
+        }
+    }
+
+    return NULL;
+}
 
 static ngx_rtmp_hls_frag_t *
 ngx_rtmp_hls_get_frag(ngx_rtmp_session_t *s, ngx_int_t n)
@@ -431,6 +463,8 @@ ngx_rtmp_hls_write_variant_playlist(ngx_rtmp_session_t *s)
     static u_char             buffer[1024];
 
     u_char                   *p, *last;
+    u_char                   variant_name[NGX_RTMP_MAX_NAME];
+
     ssize_t                   rc;
     ngx_fd_t                  fd;
     ngx_str_t                *arg;
@@ -438,6 +472,8 @@ ngx_rtmp_hls_write_variant_playlist(ngx_rtmp_session_t *s)
     ngx_rtmp_hls_ctx_t       *ctx;
     ngx_rtmp_hls_variant_t   *var;
     ngx_rtmp_hls_app_conf_t  *hacf;
+    ngx_rtmp_codec_ctx_t      *codec_ctx;
+    double                    total_data_rate;
 
     ngx_rtmp_playlist_t      v;
 
@@ -475,9 +511,46 @@ ngx_rtmp_hls_write_variant_playlist(ngx_rtmp_session_t *s)
 
         p = ngx_slprintf(p, last, "#EXT-X-STREAM-INF:PROGRAM-ID=1,CLOSED-CAPTIONS=NONE");
 
-        arg = var->args.elts;
-        for (k = 0; k < var->args.nelts; k++, arg++) {
-            p = ngx_slprintf(p, last, ",%V", arg);
+        // not sure why this is necessary.  snprintf wasn't null terminating
+        ngx_memzero(variant_name, NGX_RTMP_MAX_NAME);
+
+        ngx_snprintf(variant_name, NGX_RTMP_MAX_NAME, "%*s%V",
+                         ctx->name.len - ctx->var->suffix.len, ctx->name.data,
+                         &var->suffix);
+
+        if(var->args.nelts == 0) {
+          if (ngx_strcmp(ctx->name.data, variant_name) == 0) {
+            codec_ctx = ngx_rtmp_get_module_ctx(s, ngx_rtmp_codec_module);
+          }
+          else {
+            codec_ctx = ngx_rtmp_hls_get_stream(s, variant_name);
+          }
+
+          if(codec_ctx) {
+                // meta bandwidth is in kbps, output is in bps.  Add 10% overhead
+                total_data_rate = (codec_ctx->video_data_rate + codec_ctx->audio_data_rate)*1100;
+                p = ngx_slprintf(p, last, ",BANDWIDTH=%.0f", total_data_rate);
+                if(codec_ctx->width) {
+                  p = ngx_slprintf(p, last, ",CODECS=\"avc1.%02uxi%02uxi%02uxi", codec_ctx->avc_profile, codec_ctx->avc_compat, codec_ctx->avc_level);
+                  if(codec_ctx->audio_codec_id) {
+                    p = ngx_slprintf(p, last, ",mp4a.%s\"", codec_ctx->audio_codec_id == NGX_RTMP_AUDIO_AAC ?
+                             (codec_ctx->aac_sbr ? "40.5" : "40.2") : "6b");
+                  }
+                  else *p++ = '"';
+                  p = ngx_slprintf(p, last, ",RESOLUTION=%uix%ui", codec_ctx->width, codec_ctx->height);
+
+                }
+          }
+          else {
+            // skip the non-broadcasting rendition
+            continue;
+          }
+        }
+        else {
+          arg = var->args.elts;
+          for (k = 0; k < var->args.nelts; k++, arg++) {
+              p = ngx_slprintf(p, last, ",%V", arg);
+          }
         }
 
         if (p < last) {
