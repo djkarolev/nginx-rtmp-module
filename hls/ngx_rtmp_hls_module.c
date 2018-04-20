@@ -389,9 +389,7 @@ static ngx_rtmp_codec_ctx_t * ngx_rtmp_hls_get_stream(ngx_rtmp_session_t *s, u_c
     ngx_rtmp_live_app_conf_t *lacf;
     ngx_int_t                 n;
     ngx_rtmp_live_stream_t   *stream;
-    ngx_rtmp_codec_ctx_t     *codec;
     ngx_rtmp_live_ctx_t      *ctx;
-    ngx_rtmp_session_t       *s2;
 
     cacf = *s->app_conf;
     lacf = cacf->app_conf[ngx_rtmp_live_module.ctx_index];
@@ -399,12 +397,9 @@ static ngx_rtmp_codec_ctx_t * ngx_rtmp_hls_get_stream(ngx_rtmp_session_t *s, u_c
     for (n = 0; n < lacf->nbuckets; ++n) {
         for (stream = lacf->streams[n]; stream; stream = stream->next) {
             if (ngx_strcmp(name, stream->name) == 0) {
-                codec = NULL;
                 for (ctx = stream->ctx; ctx; ctx = ctx->next) {
                     if (ctx->publishing) {
-                        s2 = ctx->session;
-                        codec = ngx_rtmp_get_module_ctx(s2, ngx_rtmp_codec_module);
-                        return codec;
+                        return ngx_rtmp_get_module_ctx(ctx->session, ngx_rtmp_codec_module);
                     }
                 }
             }
@@ -533,8 +528,11 @@ ngx_rtmp_hls_write_variant_playlist(ngx_rtmp_session_t *s)
                 if(codec_ctx->width) {
                   p = ngx_slprintf(p, last, ",CODECS=\"avc1.%02uxi%02uxi%02uxi", codec_ctx->avc_profile, codec_ctx->avc_compat, codec_ctx->avc_level);
                   if(codec_ctx->audio_codec_id) {
+                    // apple says mp4a.40.34 for mp3.  Other sources say mp4a.6b or mp4a.69
+                    // https://developer.apple.com/library/content/documentation/NetworkingInternet/Conceptual/StreamingMediaGuide/FrequentlyAskedQuestions/FrequentlyAskedQuestions.html
+                    // nginx-rtmp dash module uses 6b.
                     p = ngx_slprintf(p, last, ",mp4a.%s\"", codec_ctx->audio_codec_id == NGX_RTMP_AUDIO_AAC ?
-                             (codec_ctx->aac_sbr ? "40.5" : "40.2") : "6b");
+                             (codec_ctx->aac_sbr ? "40.5" : "40.2") : "40.34");
                   }
                   else *p++ = '"';
                   p = ngx_slprintf(p, last, ",RESOLUTION=%uix%ui", codec_ctx->width, codec_ctx->height);
