@@ -572,6 +572,7 @@ ngx_rtmp_netcall_http_format_session(ngx_rtmp_session_t *s, ngx_pool_t *pool)
     ngx_buf_t                      *b;
     ngx_str_t                      *addr_text;
     size_t                          bsize;
+    ngx_char_t                      has_vars;
 
     addr_text = &s->connection->addr_text;
 
@@ -586,24 +587,35 @@ ngx_rtmp_netcall_http_format_session(ngx_rtmp_session_t *s, ngx_pool_t *pool)
      * So not override them with empty values
      */
 
-    bsize = sizeof("&addr=") - 1 + addr_text->len * 3 +
+    bsize = sizeof("addr=") - 1 + addr_text->len * 3 +
             sizeof("&clientid=") - 1 + NGX_INT_T_LEN;
 
+    // Indicator of additional vars from session
+    // Event `connect` don't have them, for example
+    has_vars = 0;
     if (s->app.len) {
         bsize += sizeof("app=") - 1 + s->app.len * 3;
+        has_vars = 1;
     }
     if (s->flashver.len) {
         bsize += sizeof("&flashver=") - 1 + s->flashver.len * 3;
+        has_vars = 1;
     }
     if (s->swf_url.len) {
         bsize += sizeof("&swfurl=") - 1 + s->swf_url.len * 3;
+        has_vars = 1;
     }
     if (s->tc_url.len) {
         bsize += sizeof("&tcurl=") - 1 + s->tc_url.len * 3;
+        has_vars = 1;
     }
     if (s->page_url.len) {
         bsize += sizeof("&pageurl=") - 1 + s->page_url.len * 3;
+        has_vars = 1;
     }
+
+    // We will add concatenating '&' later
+    if (0 !== has_vars) bsize += 1;
 
     b = ngx_create_temp_buf(pool, bsize);
     if (b == NULL) {
@@ -643,7 +655,10 @@ ngx_rtmp_netcall_http_format_session(ngx_rtmp_session_t *s, ngx_pool_t *pool)
                                            s->page_url.len, NGX_ESCAPE_ARGS);
     }
 
-    b->last = ngx_cpymem(b->last, (u_char*) "&addr=", sizeof("&addr=") - 1);
+    // We have additional vars in session
+    if (has_vars) *b->last++ = '&';
+
+    b->last = ngx_cpymem(b->last, (u_char*) "addr=", sizeof("addr=") - 1);
     b->last = (u_char*) ngx_escape_uri(b->last, addr_text->data,
                                        addr_text->len, NGX_ESCAPE_ARGS);
 
