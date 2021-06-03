@@ -30,8 +30,12 @@ static ngx_int_t ngx_rtmp_hls_ensure_directory(ngx_rtmp_session_t *s,
        ngx_str_t *path);
 
 
-#define NGX_RTMP_HLS_BUFSIZE            (1024*1024)
-#define NGX_RTMP_HLS_DIR_ACCESS         0744
+/* Big buffer for 8k (QHD) cameras */
+#ifndef NGX_RTMP_HLS_BUFSIZE
+#define NGX_RTMP_HLS_BUFSIZE            (16*1024*1024)
+#endif
+/* Allow access to www-data (web-server) and others too */
+#define NGX_RTMP_HLS_DIR_ACCESS         0755
 
 
 typedef struct {
