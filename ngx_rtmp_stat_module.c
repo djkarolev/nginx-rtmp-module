@@ -833,7 +833,10 @@ ngx_rtmp_stat_handler(ngx_http_request_t *r)
 #ifdef NGX_COMPILER
     NGX_RTMP_STAT_L("<compiler>" NGX_COMPILER "</compiler>\r\n");
 #endif
+/* This may prevent reproducible builds. If you need that info - pass `-DNGX_BUILD_DATEITIME=1` to CFLAGS */
+#ifdef NGX_BUILD_DATEITIME
     NGX_RTMP_STAT_L("<built>" __DATE__ " " __TIME__ "</built>\r\n");
+#endif
 
     NGX_RTMP_STAT_L("<pid>");
     NGX_RTMP_STAT(nbuf, ngx_snprintf(nbuf, sizeof(nbuf),
