@@ -36,6 +36,7 @@ rtmp {
         }
     }
 }
+```
 
 ### Re-translate remote stream with HLS support
 ```sh
