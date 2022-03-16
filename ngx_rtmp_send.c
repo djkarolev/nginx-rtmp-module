@@ -524,8 +524,8 @@ ngx_rtmp_send_status(ngx_rtmp_session_t *s, char *code, char* level, char *desc)
 
 
 ngx_chain_t *
-ngx_rtmp_create_error(ngx_rtmp_session_t *s, char *code, char* level,
-                      char *desc)
+ngx_rtmp_create_error(ngx_rtmp_session_t *s, double txn, char *code,
+                      char* level, char *desc)
 {
     ngx_rtmp_header_t               h;
     static double                   trans;
@@ -572,7 +572,7 @@ ngx_rtmp_create_error(ngx_rtmp_session_t *s, char *code, char* level,
     out_inf[0].data = level;
     out_inf[1].data = code;
     out_inf[2].data = desc;
-    trans = 0;
+    trans = txn;
 
     memset(&h, 0, sizeof(h));
 
@@ -586,10 +586,11 @@ ngx_rtmp_create_error(ngx_rtmp_session_t *s, char *code, char* level,
 
 
 ngx_int_t
-ngx_rtmp_send_error(ngx_rtmp_session_t *s, char *code, char* level, char *desc)
+ngx_rtmp_send_error(ngx_rtmp_session_t *s, double txn, char *code,
+                    char* level, char *desc)
 {
     return ngx_rtmp_send_shared_packet(s,
-           ngx_rtmp_create_error(s, code, level, desc));
+           ngx_rtmp_create_error(s, txn, code, level, desc));
 }
 
 

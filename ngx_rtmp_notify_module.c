@@ -1221,8 +1221,15 @@ ngx_rtmp_notify_connect_handle(ngx_rtmp_session_t *s,
         ngx_log_error(NGX_LOG_INFO, s->connection->log, 0,
             "notify: authentication requested");
 
-        ngx_rtmp_send_error(s, "NetConnection.Connect.Rejected", "error",
-            "code=403 need auth");
+        ngx_rtmp_send_error(s, v->trans, "error", "error",
+            "[ Reject ] : [ code=403 need auth; authmod=adobe ]");
+
+        ngx_rtmp_notify_clear_flag(s, NGX_RTMP_NOTIFY_PLAYING);
+
+        // Something by rtmpdump lib
+        send = ngx_rtmp_send_close_method(s, "close");
+        ngx_log_error(NGX_LOG_INFO, s->connection->log, 0,
+            "notify: connect send(e) close method = '%ui'", send == NGX_OK);
 
         return NGX_ERROR;
     }
@@ -1360,21 +1367,9 @@ ngx_rtmp_notify_publish_handle(ngx_rtmp_session_t *s,
         return NGX_ERROR;
     }
 
-    /* HTTP 401 Unauthorized */
-
-    if (rc == NGX_DONE) {
-        ngx_log_error(NGX_LOG_INFO, s->connection->log, 0,
-            "notify: authentication requested");
-
-        ngx_rtmp_send_error(s, "NetConnection.Connect.Rejected", "error",
-            "code=403 need auth");
-
-        return NGX_ERROR;
-    }
-
     /* HTTP 4xx */
 
-    if (rc == NGX_DECLINED) {
+    if (rc == NGX_DONE || rc == NGX_DECLINED) {
 
         ngx_log_error(NGX_LOG_INFO, s->connection->log, 0,
             "notify: publishing denyed by callback return code 4xx");
@@ -1521,21 +1516,9 @@ ngx_rtmp_notify_play_handle(ngx_rtmp_session_t *s,
         return NGX_ERROR;
     }
 
-    /* HTTP 401 Unauthorized */
-
-    if (rc == NGX_DONE) {
-        ngx_log_error(NGX_LOG_INFO, s->connection->log, 0,
-            "notify: authentication requested");
-
-        ngx_rtmp_send_error(s, "NetConnection.Connect.Rejected", "error",
-            "code=403 need auth");
-
-        return NGX_ERROR;
-    }
-
     /* HTTP 4xx */
 
-    if (rc == NGX_DECLINED) {
+    if (rc == NGX_DONE || rc == NGX_DECLINED) {
 
         ngx_log_error(NGX_LOG_INFO, s->connection->log, 0,
             "notify: playing denyed by callback return code 4xx");
