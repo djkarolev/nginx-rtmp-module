@@ -1029,37 +1029,49 @@ ngx_rtmp_notify_parse_http_retcode(ngx_rtmp_session_t *s,
 {
     ngx_buf_t      *b;
     ngx_int_t       n;
-    u_char          c;
+    u_char          c, i;
+    u_char          code[3];
 
-    /* find 10th character */
+    /* find 10th/11th/12th characters */
 
+    i = 0;
     n = 9;
-    while (in) {
+    while (in && (i < 3)) {
         b = in->buf;
         if (b->last - b->pos > n) {
             c = b->pos[n];
             if (c >= (u_char)'0' && c <= (u_char)'9') {
                 ngx_log_debug1(NGX_LOG_DEBUG_RTMP, s->connection->log, 0,
                     "notify: HTTP retcode: %dxx", (int)(c - '0'));
-                switch (c) {
-                    case (u_char) '2':
-                        return NGX_OK;
-                    case (u_char) '3':
-                        return NGX_AGAIN;
-                    case (u_char) '4':
-                        return NGX_DECLINED;
-                    default:
-                        return NGX_ERROR;
-                }
-            }
-
-            ngx_log_error(NGX_LOG_INFO, s->connection->log, 0,
+                code[i++] = c;
+                n++;
+            } else {
+                ngx_log_error(NGX_LOG_INFO, s->connection->log, 0,
                     "notify: invalid HTTP retcode: %d..", (int)c);
 
-            return NGX_ERROR;
+                return NGX_ERROR;
+            }
+        } else {
+            n -= (b->last - b->pos);
+            in = in->next;
         }
-        n -= (b->last - b->pos);
-        in = in->next;
+    }
+
+    if (in) {
+        switch (code[0]) {
+            case (u_char) '2':
+                return NGX_OK;
+            case (u_char) '3':
+                return NGX_AGAIN;
+            case (u_char) '4':
+                if (code[1] == (u_char)'0' && code[2] == (u_char)'1') {
+                    ngx_log_error(NGX_LOG_INFO, s->connection->log, 0,
+                        "notify: auth requested");
+                }
+                return NGX_DECLINED;
+            default:
+                return NGX_ERROR;
+        }
     }
 
     ngx_log_error(NGX_LOG_INFO, s->connection->log, 0,
