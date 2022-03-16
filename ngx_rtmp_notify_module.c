@@ -1067,6 +1067,7 @@ ngx_rtmp_notify_parse_http_retcode(ngx_rtmp_session_t *s,
                 if (code[1] == (u_char)'0' && code[2] == (u_char)'1') {
                     ngx_log_error(NGX_LOG_INFO, s->connection->log, 0,
                         "notify: auth requested");
+                    return NGX_DONE;
                 }
                 return NGX_DECLINED;
             default:
@@ -1214,6 +1215,18 @@ ngx_rtmp_notify_connect_handle(ngx_rtmp_session_t *s,
         return NGX_ERROR;
     }
 
+    /* HTTP 401 Unauthorized */
+
+    if (rc == NGX_DONE) {
+        ngx_log_error(NGX_LOG_INFO, s->connection->log, 0,
+            "notify: authentication requested");
+
+        ngx_rtmp_send_error(s, "NetConnection.Connect.Rejected", "error",
+            "code=403 need auth");
+
+        return NGX_ERROR;
+    }
+
     /* HTTP 4xx */
 
     if (rc == NGX_DECLINED) {
@@ -1344,6 +1357,18 @@ ngx_rtmp_notify_publish_handle(ngx_rtmp_session_t *s,
 
     if (rc == NGX_ERROR) {
         ngx_rtmp_notify_clear_flag(s, NGX_RTMP_NOTIFY_PUBLISHING);
+        return NGX_ERROR;
+    }
+
+    /* HTTP 401 Unauthorized */
+
+    if (rc == NGX_DONE) {
+        ngx_log_error(NGX_LOG_INFO, s->connection->log, 0,
+            "notify: authentication requested");
+
+        ngx_rtmp_send_error(s, "NetConnection.Connect.Rejected", "error",
+            "code=403 need auth");
+
         return NGX_ERROR;
     }
 
@@ -1493,6 +1518,18 @@ ngx_rtmp_notify_play_handle(ngx_rtmp_session_t *s,
 
     if (rc == NGX_ERROR) {
         ngx_rtmp_notify_clear_flag(s, NGX_RTMP_NOTIFY_PLAYING);
+        return NGX_ERROR;
+    }
+
+    /* HTTP 401 Unauthorized */
+
+    if (rc == NGX_DONE) {
+        ngx_log_error(NGX_LOG_INFO, s->connection->log, 0,
+            "notify: authentication requested");
+
+        ngx_rtmp_send_error(s, "NetConnection.Connect.Rejected", "error",
+            "code=403 need auth");
+
         return NGX_ERROR;
     }
 
